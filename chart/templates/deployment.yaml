@@ -33,6 +33,10 @@ spec:
               value: "3001"
             - name: DB_PATH
               value: /data/blueprince.db
+            - name: AUTH_RO_USER
+              value: {{ .Values.auth.roUser | quote }}
+            - name: AUTH_RW_USER
+              value: {{ .Values.auth.rwUser | quote }}
           envFrom:
             - secretRef:
                 name: {{ include "blueprince-helper.fullname" . }}-auth
