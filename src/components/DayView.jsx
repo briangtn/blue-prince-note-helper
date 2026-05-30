@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../api/client.js'
 import { formatGameDate } from '../api/gameDate.js'
 import { useWs } from '../api/useWs.js'
+import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
 
 const ROWS = 9
@@ -13,6 +14,8 @@ const isFixed = (r, c) =>
   (r === ANTECHAMBER.row && c === ANTECHAMBER.col) || (r === ENTRANCE.row && c === ENTRANCE.col)
 
 export default function DayView() {
+  const { role } = useAuth()
+  const canEdit = role !== 'ro'
   const [days, setDays] = useState([])
   const [current, setCurrent] = useState(() => {
     const v = localStorage.getItem('bp_current_day')
@@ -86,9 +89,11 @@ export default function DayView() {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4">
         <p className="text-slate-400">Aucun jour en cours.</p>
-        <button onClick={startDay} className="bg-cyan-600 hover:bg-cyan-500 px-6 py-3 rounded-lg font-semibold text-lg">
-          ▶ Commencer un jour
-        </button>
+        {canEdit && (
+          <button onClick={startDay} className="bg-cyan-600 hover:bg-cyan-500 px-6 py-3 rounded-lg font-semibold text-lg">
+            ▶ Commencer un jour
+          </button>
+        )}
         {days.length > 0 && (
           <div className="text-center">
             <p className="text-sm text-slate-500 mb-2">ou reprendre un jour :</p>
@@ -120,9 +125,11 @@ export default function DayView() {
               <option key={d.day_number} value={d.day_number}>Days {String(d.day_number).padStart(2, '0')}</option>
             ))}
           </select>
-          <button onClick={startDay} className="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded text-sm font-medium">
-            ▶ Nouveau jour
-          </button>
+          {canEdit && (
+            <button onClick={startDay} className="bg-cyan-600 hover:bg-cyan-500 px-3 py-1 rounded text-sm font-medium">
+              ▶ Nouveau jour
+            </button>
+          )}
         </div>
 
         {/* Grille du manoir */}
@@ -142,9 +149,9 @@ export default function DayView() {
                 )
               }
               return (
-                <button key={`${r}-${c}`} onClick={() => setCell({ row: r, col: c, existing: p })}
-                  className="w-24 h-20 rounded-lg flex items-center justify-center text-center text-xs px-1 border transition
-                    border-slate-700 hover:border-cyan-500"
+                <button key={`${r}-${c}`} onClick={canEdit ? () => setCell({ row: r, col: c, existing: p }) : undefined}
+                  className={`w-24 h-20 rounded-lg flex items-center justify-center text-center text-xs px-1 border transition
+                    border-slate-700 ${canEdit ? 'hover:border-cyan-500 cursor-pointer' : 'cursor-default'}`}
                   style={p ? { background: colorFor(p.room_type) + '33', borderColor: colorFor(p.room_type) } : { background: '#1e293b' }}>
                   {p ? (
                     <span className="font-medium leading-tight">{p.room_name}{p.note ? ' 📝' : ''}</span>
@@ -162,7 +169,7 @@ export default function DayView() {
       <aside className="w-72 bg-slate-800/50 p-4 shrink-0 flex flex-col">
         <h3 className="font-bold mb-2">📝 Notes du jour</h3>
         <p className="text-xs text-slate-500 mb-2">Notes "overall" propres à ce run.</p>
-        <textarea value={overall} onChange={onNotesChange}
+        <textarea value={overall} onChange={canEdit ? onNotesChange : undefined} readOnly={!canEdit}
           placeholder="Tout ce que tu veux retenir pour ce jour…"
           className="flex-1 bg-slate-900 border border-slate-600 rounded p-3 text-sm resize-none mb-3" />
         <LinksPanel type="day" id={current} title="Liens du jour" />

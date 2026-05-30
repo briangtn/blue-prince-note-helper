@@ -11,6 +11,7 @@ import days from './routes/days.js'
 import people from './routes/people.js'
 import notes from './routes/notes.js'
 import links from './routes/links.js'
+import auth from './auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -27,6 +28,14 @@ function broadcast(channel) {
     if (ws.readyState === 1) ws.send(msg)
   }
 }
+
+app.get('/healthz', (_req, res) => res.json({ status: 'ok' }))
+
+app.use('/api', auth)
+
+app.get('/api/auth/me', (req, res) => {
+  res.json({ user: req.user || null, role: req.role || 'rw' })
+})
 
 // Middleware : sur toute mutation (POST/PUT/DELETE), broadcast le canal
 app.use('/api', (req, res, next) => {

@@ -1,11 +1,24 @@
 const base = '/api'
 
+function authHeaders() {
+  const user = localStorage.getItem('bp_user')
+  const pass = localStorage.getItem('bp_pass')
+  if (!user || !pass) return {}
+  return { Authorization: 'Basic ' + btoa(user + ':' + pass) }
+}
+
 async function req(path, opts = {}) {
   const res = await fetch(base + path, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     ...opts,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   })
+  if (res.status === 401) {
+    localStorage.removeItem('bp_user')
+    localStorage.removeItem('bp_pass')
+    window.location.reload()
+    throw new Error('Authentication required')
+  }
   if (!res.ok) throw new Error(await res.text())
   return res.json()
 }

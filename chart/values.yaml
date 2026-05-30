@@ -31,6 +31,12 @@ persistence:
     - ReadWriteOnce
   size: 1Gi
 
+auth:
+  roUser: ""
+  roPass: ""
+  rwUser: ""
+  rwPass: ""
+
 resources: {}
 
 nodeSelector: {}

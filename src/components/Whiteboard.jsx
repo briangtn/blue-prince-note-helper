@@ -5,11 +5,14 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { api } from '../api/client.js'
+import { useAuth } from '../AuthContext.jsx'
 
 let idSeq = 1
 const newId = () => `n_${Date.now()}_${idSeq++}`
 
 export default function Whiteboard() {
+  const { role } = useAuth()
+  const canEdit = role !== 'ro'
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const [loaded, setLoaded] = useState(false)
@@ -63,14 +66,20 @@ export default function Whiteboard() {
 
   return (
     <div className="h-full relative">
-      <button onClick={addNode}
-        className="absolute top-4 left-4 z-10 bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium shadow-lg">
-        + Note
-      </button>
+      {canEdit && (
+        <button onClick={addNode}
+          className="absolute top-4 left-4 z-10 bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium shadow-lg">
+          + Note
+        </button>
+      )}
       <ReactFlow
         nodes={nodes} edges={edges}
-        onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
+        onNodesChange={canEdit ? onNodesChange : undefined}
+        onEdgesChange={canEdit ? onEdgesChange : undefined}
+        onConnect={canEdit ? onConnect : undefined}
+        nodesDraggable={canEdit}
+        nodesConnectable={canEdit}
+        elementsSelectable={canEdit}
         fitView colorMode="dark"
       >
         <Background />

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { AuthProvider, useAuth } from './AuthContext.jsx'
+import LoginForm from './components/LoginForm.jsx'
 import RoomsView from './components/RoomsView.jsx'
 import DateCalc from './components/DateCalc.jsx'
 import Whiteboard from './components/Whiteboard.jsx'
@@ -21,8 +23,9 @@ const TABS = [
   ['codes', '🔑 Codes'],
 ]
 
-export default function App() {
+function AppContent() {
   const [tab, setTab] = useState('day')
+  const { user, role, logout } = useAuth()
 
   return (
     <div className="flex flex-col h-full">
@@ -34,6 +37,12 @@ export default function App() {
             {label}
           </button>
         ))}
+        <div className="ml-auto flex items-center gap-2 text-sm text-slate-400">
+          <span>{user} ({role === 'ro' ? 'lecture seule' : 'lecture/écriture'})</span>
+          <button onClick={logout} className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">
+            Déconnexion
+          </button>
+        </div>
       </header>
       <div className="flex-1 overflow-hidden">
         {tab === 'day' && <DayView />}
@@ -48,4 +57,19 @@ export default function App() {
       </div>
     </div>
   )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppInner />
+    </AuthProvider>
+  )
+}
+
+function AppInner() {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) return <LoginForm />
+  return <AppContent />
 }

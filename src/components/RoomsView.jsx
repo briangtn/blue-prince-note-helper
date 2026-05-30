@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
+import { useAuth } from '../AuthContext.jsx'
 import RoomForm from './RoomForm.jsx'
 import LinksPanel from './LinksPanel.jsx'
 
@@ -27,11 +28,13 @@ const renderCombos = (json) => {
 }
 
 export default function RoomsView() {
+  const { role } = useAuth()
+  const canEdit = role !== 'ro'
   const [types, setTypes] = useState([])
   const [rooms, setRooms] = useState([])
   const [filterType, setFilterType] = useState('')
   const [q, setQ] = useState('')
-  const [editing, setEditing] = useState(null) // null | {} (new) | room
+  const [editing, setEditing] = useState(null)
   const [newType, setNewType] = useState('')
 
   const loadTypes = useCallback(() => api.listTypes().then(setTypes), [])
@@ -80,11 +83,13 @@ export default function RoomsView() {
             {t.name}
           </button>
         ))}
-        <form onSubmit={addType} className="mt-4 flex gap-1">
-          <input value={newType} onChange={(e) => setNewType(e.target.value)} placeholder="Nouveau type"
-            className="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm" />
-          <button className="bg-cyan-600 hover:bg-cyan-500 px-2 rounded text-sm">+</button>
-        </form>
+        {canEdit && (
+          <form onSubmit={addType} className="mt-4 flex gap-1">
+            <input value={newType} onChange={(e) => setNewType(e.target.value)} placeholder="Nouveau type"
+              className="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-sm" />
+            <button className="bg-cyan-600 hover:bg-cyan-500 px-2 rounded text-sm">+</button>
+          </form>
+        )}
       </aside>
 
       {/* Main */}
@@ -92,9 +97,11 @@ export default function RoomsView() {
         <div className="flex items-center gap-3 mb-5">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher (nom, notes, objets)…"
             className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2" />
-          <button onClick={() => setEditing({})} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium whitespace-nowrap">
-            + Pièce
-          </button>
+          {canEdit && (
+            <button onClick={() => setEditing({})} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium whitespace-nowrap">
+              + Pièce
+            </button>
+          )}
         </div>
 
         {editing !== null && (
@@ -111,10 +118,12 @@ export default function RoomsView() {
                   <div className="font-bold text-lg">{r.name}</div>
                   <div className="text-xs" style={{ color: colorFor(r.type) }}>{r.type}</div>
                 </div>
-                <div className="flex gap-2 text-sm">
-                  <button onClick={() => setEditing(r)} className="text-cyan-400 hover:text-cyan-300">Éditer</button>
-                  <button onClick={() => remove(r.id)} className="text-red-400 hover:text-red-300">Suppr</button>
-                </div>
+                {canEdit && (
+                  <div className="flex gap-2 text-sm">
+                    <button onClick={() => setEditing(r)} className="text-cyan-400 hover:text-cyan-300">Éditer</button>
+                    <button onClick={() => remove(r.id)} className="text-red-400 hover:text-red-300">Suppr</button>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3 text-sm">
                 {r.gem_cost != null && r.gem_cost !== '' && (

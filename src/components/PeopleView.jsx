@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
+import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
 
 const EMPTY = { name: '', role: '', day_met: '', status: '', notes: '' }
 
 export default function PeopleView() {
+  const { role } = useAuth()
+  const canEdit = role !== 'ro'
   const [people, setPeople] = useState([])
   const [editing, setEditing] = useState(null)
   const [q, setQ] = useState('')
@@ -47,9 +50,11 @@ export default function PeopleView() {
     <div className="max-w-4xl mx-auto p-6 h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-2xl font-bold">👥 Personnes</h2>
-        <button onClick={() => setEditing({})} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium">
-          + Personne
-        </button>
+        {canEdit && (
+          <button onClick={() => setEditing({})} className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium">
+            + Personne
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-5">
@@ -86,10 +91,12 @@ export default function PeopleView() {
                   {p.status && <span>Statut: {p.status}</span>}
                 </div>
               </div>
-              <div className="flex gap-2 text-sm">
-                <button onClick={() => setEditing(p)} className="text-cyan-400 hover:text-cyan-300">Éditer</button>
-                <button onClick={() => remove(p.id)} className="text-red-400 hover:text-red-300">Suppr</button>
-              </div>
+              {canEdit && (
+                <div className="flex gap-2 text-sm">
+                  <button onClick={() => setEditing(p)} className="text-cyan-400 hover:text-cyan-300">Éditer</button>
+                  <button onClick={() => remove(p.id)} className="text-red-400 hover:text-red-300">Suppr</button>
+                </div>
+              )}
             </div>
             {p.notes && <p className="text-sm text-slate-300 whitespace-pre-wrap">{p.notes}</p>}
             <LinksPanel type="person" id={p.id} />

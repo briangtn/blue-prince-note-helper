@@ -1,11 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
+import { useAuth } from '../AuthContext.jsx'
 import { meta, ENTITY_TYPES } from '../api/entities.js'
 
 // Panneau de liens réutilisable pour n'importe quelle entité.
 // Props: type (string), id (number|string), compact (bool)
 export default function LinksPanel({ type, id, title = 'Liens' }) {
+  const { role } = useAuth()
+  const canEdit = role !== 'ro'
   const [links, setLinks] = useState([])
   const [entities, setEntities] = useState([])
   const [adding, setAdding] = useState(false)
@@ -50,9 +53,11 @@ export default function LinksPanel({ type, id, title = 'Liens' }) {
     <div className="bg-slate-900/60 rounded-lg p-3">
       <div className="flex items-center justify-between mb-2">
         <h4 className="font-semibold text-sm">🔗 {title}</h4>
-        <button onClick={() => setAdding((v) => !v)} className="text-cyan-400 hover:text-cyan-300 text-sm">
-          {adding ? '×' : '+ lien'}
-        </button>
+        {canEdit && (
+          <button onClick={() => setAdding((v) => !v)} className="text-cyan-400 hover:text-cyan-300 text-sm">
+            {adding ? '×' : '+ lien'}
+          </button>
+        )}
       </div>
 
       {adding && (
@@ -98,7 +103,7 @@ export default function LinksPanel({ type, id, title = 'Liens' }) {
             <span>{meta(l.other_type).icon}</span>
             <span className="flex-1 truncate">{l.other_label}</span>
             {l.label && <span className="text-xs text-slate-400 italic">{l.label}</span>}
-            <button onClick={() => remove(l.id)} className="text-red-400 hover:text-red-300 text-xs">✕</button>
+            {canEdit && <button onClick={() => remove(l.id)} className="text-red-400 hover:text-red-300 text-xs">✕</button>}
           </li>
         ))}
         {links.length === 0 && !adding && <li className="text-xs text-slate-500">Aucun lien.</li>}

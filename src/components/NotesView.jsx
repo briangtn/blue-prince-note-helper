@@ -1,8 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
+import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
 
 export default function NotesView() {
+  const { role } = useAuth()
+  const canEdit = role !== 'ro'
   const [notes, setNotes] = useState([])
   const [title, setTitle] = useState('')
 
@@ -20,20 +23,22 @@ export default function NotesView() {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-5">🗒 Notes</h2>
-      <form onSubmit={add} className="flex gap-2 mb-6">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de la note…"
-          className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2" />
-        <button className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium">Ajouter</button>
-      </form>
+      {canEdit && (
+        <form onSubmit={add} className="flex gap-2 mb-6">
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de la note…"
+            className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2" />
+          <button className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium">Ajouter</button>
+        </form>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {notes.map((n) => <NoteCard key={n.id} note={n} onChange={load} />)}
+        {notes.map((n) => <NoteCard key={n.id} note={n} onChange={load} canEdit={canEdit} />)}
         {notes.length === 0 && <p className="text-slate-500">Aucune note.</p>}
       </div>
     </div>
   )
 }
 
-function NoteCard({ note, onChange }) {
+function NoteCard({ note, onChange, canEdit }) {
   const [title, setTitle] = useState(note.title || '')
   const [body, setBody] = useState(note.body || '')
 
@@ -51,11 +56,11 @@ function NoteCard({ note, onChange }) {
   return (
     <div className="bg-slate-800 rounded-xl p-4 space-y-3">
       <div className="flex gap-2">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={save}
+        <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={canEdit ? save : undefined} readOnly={!canEdit}
           className="flex-1 bg-transparent font-bold text-lg outline-none border-b border-transparent focus:border-slate-600" />
-        <button onClick={remove} className="text-red-400 hover:text-red-300 text-sm">Suppr</button>
+        {canEdit && <button onClick={remove} className="text-red-400 hover:text-red-300 text-sm">Suppr</button>}
       </div>
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} onBlur={save} rows={3}
+      <textarea value={body} onChange={(e) => setBody(e.target.value)} onBlur={canEdit ? save : undefined} readOnly={!canEdit} rows={3}
         placeholder="Contenu…"
         className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-sm" />
       <LinksPanel type="note" id={note.id} />
