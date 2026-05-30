@@ -1,7 +1,7 @@
 replicaCount: 1
 
 image:
-  repository: blueprince-helper
+  repository: ghcr.io/briangtn/blue-prince-note-helper
   tag: latest
   pullPolicy: IfNotPresent
 
