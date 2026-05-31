@@ -15,6 +15,7 @@ COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
 COPY server/ server/
+COPY src/api/roomCatalog.js src/api/roomCatalog.js
 COPY --from=build /app/dist dist/
 
 RUN mkdir -p /data
