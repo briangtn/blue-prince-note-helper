@@ -2,14 +2,13 @@ import { useState, forwardRef } from 'react'
 import { Icons } from './Icons.jsx'
 
 export const ROOM_TYPES_META = [
-  { id: 1, name: 'Hallways',    color: '#E8913A' },
-  { id: 2, name: 'Bedrooms',    color: '#9B72CF' },
-  { id: 3, name: 'Green rooms', color: '#5BAD6E' },
-  { id: 4, name: 'Shops',       color: '#D4A843' },
-  { id: 5, name: 'Red rooms',   color: '#C85454' },
-  { id: 6, name: 'Outer rooms', color: '#5B8EC9' },
-  { id: 7, name: 'Blueprints',  color: '#4B7FBF' },
-  { id: 8, name: 'Other',       color: '#7A9BAE' },
+  { id: 1, name: 'Blueprints',   color: '#4B7FBF' },
+  { id: 2, name: 'Bedrooms',     color: '#9B72CF' },
+  { id: 3, name: 'Hallways',     color: '#E8913A' },
+  { id: 4, name: 'Green rooms',  color: '#5BAD6E' },
+  { id: 5, name: 'Shops',        color: '#D4A843' },
+  { id: 6, name: 'Red rooms',    color: '#C85454' },
+  { id: 7, name: 'Secret rooms', color: '#6B7280' },
 ]
 
 export function typeColor(typeName, types) {
@@ -97,12 +96,12 @@ export const CHESS_SYMBOLS = {
 
 const CHESS_PIECES_LIST = [
   { key: '', label: 'Aucune' },
-  { key: 'pawn',   symbol: '♟' },
-  { key: 'knight', symbol: '♞' },
-  { key: 'bishop', symbol: '♝' },
-  { key: 'rook',   symbol: '♜' },
-  { key: 'queen',  symbol: '♛' },
   { key: 'king',   symbol: '♚' },
+  { key: 'queen',  symbol: '♛' },
+  { key: 'rook',   symbol: '♜' },
+  { key: 'bishop', symbol: '♝' },
+  { key: 'knight', symbol: '♞' },
+  { key: 'pawn',   symbol: '♟' },
 ]
 
 export function chessSymbol(chess_pieces) {

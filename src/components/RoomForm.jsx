@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { lookupRoom, KNOWN_ROOM_NAMES } from '../api/roomCatalog.js'
+import { lookupRoom } from '../api/roomCatalog.js'
 import { Input, TextArea, Select, Btn, ChessPieceSelector } from '../ui/primitives.jsx'
 
 const EMPTY = {
@@ -54,8 +54,14 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
     })
   }
 
+  const [error, setError] = useState('')
   const submit = (e) => {
     e.preventDefault()
+    if (!lookupRoom(form.name)) {
+      setError('Salle inconnue du catalogue')
+      return
+    }
+    setError('')
     const clean = combos.map((p) => [p[0].trim(), p[1].trim()]).filter((p) => p[0] || p[1])
     onSubmit({
       ...form,
@@ -76,10 +82,8 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
           <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>
             Nom {matched && <span style={{ color: '#5BAD6E' }}>auto-rempli</span>}
           </label>
-          <Input list="room-catalog" value={form.name} onChange={handleName} required placeholder="Nom de la pièce" />
-          <datalist id="room-catalog">
-            {KNOWN_ROOM_NAMES.map((n) => <option key={n} value={n} />)}
-          </datalist>
+          <Input value={form.name} onChange={handleName} required placeholder="Nom de la pièce" />
+          {error && <div style={{ fontSize: 11, color: '#C85454', marginTop: 4 }}>{error}</div>}
         </div>
         <div>
           <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Type</label>

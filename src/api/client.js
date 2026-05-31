@@ -71,7 +71,7 @@ export const api = {
   // création générique d'une entité de n'importe quel type -> renvoie {type, id, label}
   createEntity: async (type, label) => {
     switch (type) {
-      case 'room': { const r = await api.createRoom({ name: label, type: 'Other' }); return { type, id: r.id, label: r.name } }
+      case 'room': { const r = await api.createRoom({ name: label, type: 'Blueprints' }); return { type, id: r.id, label: r.name } }
       case 'person': { const p = await api.createPerson({ name: label }); return { type, id: p.id, label: p.name } }
       case 'code': { const c = await api.createCode({ value: label }); return { type, id: c.id, label: c.value } }
       case 'note': { const n = await api.createNote({ title: label, body: '' }); return { type, id: n.id, label: n.title } }

@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { lookupRoom } from '../src/api/roomCatalog.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const dbPath = process.env.DB_PATH || join(__dirname, '..', 'data', 'blueprince.db')
@@ -121,21 +122,48 @@ if (!roomCols.includes('gem_cost')) {
   db.exec('ALTER TABLE rooms ADD COLUMN gem_cost TEXT')
 }
 
-// Seed predefined room types
+// Seed predefined room types (schéma wiki : 7 catégories = couleur de bordure du jeu)
 const defaultTypes = [
-  ['Bedrooms', '#8b5cf6'],
-  ['Hallways', '#f59e0b'],
-  ['Green rooms', '#10b981'],
-  ['Shops', '#3b82f6'],
-  ['Red rooms', '#ef4444'],
-  ['Outer rooms', '#06b6d4'],
-  ['Other', '#64748b'],
-  ['Founds', '#ec4899'],
+  ['Blueprints', '#4B7FBF'],
+  ['Bedrooms', '#9B72CF'],
+  ['Hallways', '#E8913A'],
+  ['Green rooms', '#5BAD6E'],
+  ['Shops', '#D4A843'],
+  ['Red rooms', '#C85454'],
+  ['Secret rooms', '#6B7280'],
 ]
 const count = db.prepare('SELECT COUNT(*) AS c FROM room_types').get().c
 if (count === 0) {
   const insert = db.prepare('INSERT INTO room_types (name, color) VALUES (?, ?)')
   for (const [name, color] of defaultTypes) insert.run(name, color)
+}
+
+// Migration idempotente vers le schéma wiki des 7 catégories.
+// Garde-fou : on ne migre que si l'ancien type 'Outer rooms' existe encore.
+const hasOuter = db.prepare("SELECT 1 FROM room_types WHERE name = 'Outer rooms'").get()
+if (hasOuter) {
+  const migrate = db.transaction(() => {
+    // 1. Aligner / créer les 7 types cibles
+    const upsertType = db.prepare(`
+      INSERT INTO room_types (name, color) VALUES (?, ?)
+      ON CONFLICT(name) DO UPDATE SET color = excluded.color
+    `)
+    for (const [name, color] of defaultTypes) upsertType.run(name, color)
+
+    // 2. Recatégoriser chaque salle via le catalogue (sinon Blueprints par défaut)
+    const rooms = db.prepare('SELECT id, name FROM rooms').all()
+    const setType = db.prepare('UPDATE rooms SET type = ? WHERE id = ?')
+    for (const r of rooms) {
+      const hit = lookupRoom(r.name)
+      setType.run(hit?.type || 'Blueprints', r.id)
+    }
+
+    // 3. Remapper les éventuels types résiduels puis supprimer les anciens types
+    db.prepare("UPDATE rooms SET type = 'Secret rooms' WHERE type IN ('Outer rooms', 'Founds')").run()
+    db.prepare("UPDATE rooms SET type = 'Blueprints' WHERE type = 'Other'").run()
+    db.prepare("DELETE FROM room_types WHERE name IN ('Outer rooms', 'Founds', 'Other')").run()
+  })
+  migrate()
 }
 
 export default db

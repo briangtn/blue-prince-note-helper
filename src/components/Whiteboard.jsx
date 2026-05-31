@@ -53,6 +53,20 @@ export default function Whiteboard() {
     setEdges((eds) => addEdge({ ...params, id: newId(), label }, eds))
   }, [setEdges])
 
+  const onNodeDoubleClick = useCallback((_, node) => {
+    if (!canEdit) return
+    const newLabel = prompt('Modifier le texte :', node.data?.label ?? '')
+    if (newLabel === null) return
+    setNodes((nds) => nds.map((n) => n.id === node.id ? { ...n, data: { ...n.data, label: newLabel } } : n))
+  }, [canEdit, setNodes])
+
+  const onEdgeDoubleClick = useCallback((_, edge) => {
+    if (!canEdit) return
+    const newLabel = prompt('Modifier le label du lien :', edge.label ?? '')
+    if (newLabel === null) return
+    setEdges((eds) => eds.map((e) => e.id === edge.id ? { ...e, label: newLabel } : e))
+  }, [canEdit, setEdges])
+
   const addNode = () => {
     const label = prompt('Texte de la note :')
     if (!label) return
@@ -77,6 +91,8 @@ export default function Whiteboard() {
         onNodesChange={canEdit ? onNodesChange : undefined}
         onEdgesChange={canEdit ? onEdgesChange : undefined}
         onConnect={canEdit ? onConnect : undefined}
+        onNodeDoubleClick={canEdit ? onNodeDoubleClick : undefined}
+        onEdgeDoubleClick={canEdit ? onEdgeDoubleClick : undefined}
         nodesDraggable={canEdit}
         nodesConnectable={canEdit}
         elementsSelectable={canEdit}

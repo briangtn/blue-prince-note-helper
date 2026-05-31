@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { api } from '../api/client.js'
 import { formatGameDate } from '../api/gameDate.js'
 import { useWs } from '../api/useWs.js'
+import { useCurrentDay } from '../api/currentDay.js'
 import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
 import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, chessSymbol, CHESS_SYMBOLS } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
-import { lookupRoom, KNOWN_ROOM_NAMES } from '../api/roomCatalog.js'
+import { lookupRoom, roomIconUrl } from '../api/roomCatalog.js'
 
 const ROWS = 9
 const COLS = 5
@@ -51,10 +52,7 @@ export default function DayView() {
   const canEdit = role !== 'ro'
 
   const [days, setDays] = useState([])
-  const [current, setCurrent] = useState(() => {
-    const v = localStorage.getItem('bp_current_day')
-    return v ? Number(v) : null
-  })
+  const [current, setCurrentDay] = useCurrentDay()
   const [placements, setPlacements] = useState([])
   const [overall, setOverall] = useState('')
   const [types, setTypes] = useState([])
@@ -92,8 +90,7 @@ export default function DayView() {
 
   const switchDay = (n) => {
     const num = Number(n)
-    localStorage.setItem('bp_current_day', String(num))
-    setCurrent(num)
+    setCurrentDay(num)
     setSelectedCell(null)
     setPanelMode('idle')
   }
@@ -102,6 +99,13 @@ export default function DayView() {
     const input = prompt('Numéro du jour (Days XX) :')
     const n = parseInt(input, 10)
     if (!n || n < 1) return
+    await api.startDay(n)
+    switchDay(n)
+    loadDays()
+  }
+
+  const nextDay = async () => {
+    const n = (current || 0) + 1
     await api.startDay(n)
     switchDay(n)
     loadDays()
@@ -279,6 +283,12 @@ export default function DayView() {
                 Nouveau jour
               </Btn>
             )}
+            {canEdit && (
+              <Btn small onClick={nextDay}>
+                <Icons.chevR style={{ width: 13, height: 13 }} />
+                Jour suivant
+              </Btn>
+            )}
             <span style={{ fontSize: 12, color: 'var(--bp-text-muted)', marginLeft: 8 }}>
               {placed} pièce{placed !== 1 ? 's' : ''} placée{placed !== 1 ? 's' : ''},&nbsp;
               {free} libre{free !== 1 ? 's' : ''}
@@ -289,8 +299,8 @@ export default function DayView() {
         {/* Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${COLS}, minmax(80px, 110px))`,
-          gap: 6,
+          gridTemplateColumns: `repeat(${COLS}, minmax(100px, 135px))`,
+          gap: 7,
           padding: 16,
           borderRadius: 12,
           background: 'var(--bp-surface)',
@@ -310,6 +320,7 @@ export default function DayView() {
               const chess = p ? chessSymbol(p.chess_pieces) : null
 
               if (fixed) {
+                const fixedIcon = roomIconUrl(fixedName)
                 return (
                   <div key={`${r}-${c}`} style={{
                     aspectRatio: '1.2',
@@ -329,7 +340,22 @@ export default function DayView() {
                       fontSize: 9, color: 'var(--bp-text-muted)',
                       fontFamily: 'var(--font-mono)',
                     }}>{label}</span>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--bp-text-dim)', textAlign: 'center', lineHeight: 1.3 }}>
+                    {fixedIcon && (
+                      <img src={fixedIcon} alt={fixedName} style={{
+                        position: 'absolute', inset: 0,
+                        width: '100%', height: '100%', objectFit: 'cover',
+                        borderRadius: 6,
+                      }} />
+                    )}
+                    <span style={{
+                      position: 'absolute', left: 0, right: 0, bottom: 0,
+                      padding: '3px 4px',
+                      fontSize: 10, fontWeight: 700, color: '#fff',
+                      textAlign: 'center', lineHeight: 1.2,
+                      background: fixedIcon ? 'rgba(0,0,0,0.6)' : 'transparent',
+                      borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
+                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                    }}>
                       {fixedName}
                     </span>
                   </div>
@@ -378,17 +404,33 @@ export default function DayView() {
                     }}>{chess}</span>
                   )}
 
-                  {p ? (
-                    <span style={{
-                      fontSize: 11, fontWeight: 600,
-                      color: color || 'var(--bp-text)',
-                      textAlign: 'center', lineHeight: 1.3,
-                      wordBreak: 'break-word',
-                      maxWidth: '100%',
-                    }}>
-                      {p.room_name}
-                    </span>
-                  ) : (
+                  {p ? (() => {
+                    const icon = roomIconUrl(p.room_name)
+                    return (
+                      <>
+                        {icon && (
+                          <img src={icon} alt={p.room_name} style={{
+                            position: 'absolute', inset: 0,
+                            width: '100%', height: '100%', objectFit: 'cover',
+                            borderRadius: 6,
+                          }} />
+                        )}
+                        <span style={{
+                          position: 'absolute', left: 0, right: 0, bottom: 0,
+                          padding: '3px 4px',
+                          fontSize: 10, fontWeight: 700,
+                          color: '#fff',
+                          textAlign: 'center', lineHeight: 1.2,
+                          wordBreak: 'break-word',
+                          background: icon ? 'rgba(0,0,0,0.6)' : 'transparent',
+                          borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
+                          textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                        }}>
+                          {p.room_name}
+                        </span>
+                      </>
+                    )
+                  })() : (
                     <span style={{ fontSize: 18, color: 'var(--bp-border)', lineHeight: 1 }}>+</span>
                   )}
                 </button>
@@ -582,7 +624,7 @@ function PickPanel({ rooms, types, onPick, onNewRoom }) {
   // Group by type
   const grouped = {}
   for (const r of filtered) {
-    const t = r.type || 'Other'
+    const t = r.type || 'Blueprints'
     if (!grouped[t]) grouped[t] = []
     grouped[t].push(r)
   }
@@ -779,6 +821,7 @@ function NewRoomPanel({ types, onCreated, onCancel }) {
   const [gemCost, setGemCost] = useState('')
   const [matched, setMatched] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const handleName = (e) => {
     const value = e.target.value
@@ -794,11 +837,16 @@ function NewRoomPanel({ types, onCreated, onCancel }) {
   const submit = async (e) => {
     e.preventDefault()
     if (!name.trim()) return
+    if (!lookupRoom(name)) {
+      setError('Salle inconnue du catalogue')
+      return
+    }
+    setError('')
     setSaving(true)
     try {
       const room = await api.createRoom({
         name: name.trim(),
-        type: type || types[0]?.name || 'Other',
+        type: type || types[0]?.name || 'Blueprints',
         gem_cost: gemCost !== '' ? Number(gemCost) : undefined,
       })
       onCreated(room)
@@ -814,16 +862,13 @@ function NewRoomPanel({ types, onCreated, onCancel }) {
           Nom {matched && <span style={{ color: '#5BAD6E' }}>(auto-rempli)</span>}
         </label>
         <Input
-          list="room-catalog-new"
           value={name}
           onChange={handleName}
           placeholder="Nom de la pièce"
           autoFocus
           required
         />
-        <datalist id="room-catalog-new">
-          {KNOWN_ROOM_NAMES.map(n => <option key={n} value={n} />)}
-        </datalist>
+        {error && <div style={{ fontSize: 11, color: '#C85454', marginTop: 4 }}>{error}</div>}
       </div>
 
       <div>
