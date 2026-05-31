@@ -10,18 +10,16 @@ const EMPTY = {
 const parseCombos = (json) => {
   try {
     const a = JSON.parse(json || '[]')
-    return [
-      [a[0]?.[0] || '', a[0]?.[1] || ''],
-      [a[1]?.[0] || '', a[1]?.[1] || ''],
-    ]
+    const pairs = a.map((p) => [p?.[0] || '', p?.[1] || ''])
+    return pairs.length ? pairs : [['', '']]
   } catch {
-    return [['', ''], ['', '']]
+    return [['', '']]
   }
 }
 
 export default function RoomForm({ types, initial, onSubmit, onCancel }) {
   const [form, setForm] = useState(EMPTY)
-  const [combos, setCombos] = useState([['', ''], ['', '']])
+  const [combos, setCombos] = useState([['', '']])
 
   useEffect(() => {
     setForm(initial ? { ...EMPTY, ...initial } : { ...EMPTY, type: types[0]?.name || '' })
@@ -53,6 +51,12 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
       return next
     })
   }
+
+  const addCombo = () => setCombos((c) => [...c, ['', '']])
+  const removeCombo = (ci) => setCombos((c) => {
+    const next = c.filter((_, i) => i !== ci)
+    return next.length ? next : [['', '']]
+  })
 
   const [error, setError] = useState('')
   const submit = (e) => {
@@ -116,16 +120,22 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
       <div>
         <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Paires de tableaux</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[0, 1].map((ci) => (
+          {combos.map((pair, ci) => (
             <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', width: 50 }}>Combo {ci + 1}</span>
-              <Input value={combos[ci][0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
+              <Input value={pair[0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
                 style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
               <span style={{ color: 'var(--bp-text-muted)', fontSize: 11 }}>/</span>
-              <Input value={combos[ci][1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
+              <Input value={pair[1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
                 style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
+              <button type="button" onClick={() => removeCombo(ci)} title="Supprimer"
+                style={{ border: 'none', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>−</button>
             </div>
           ))}
+          <button type="button" onClick={addCombo}
+            style={{ alignSelf: 'flex-start', border: '1px dashed var(--bp-border)', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 12, padding: '4px 10px', borderRadius: 4 }}>
+            + Ajouter une combinaison
+          </button>
         </div>
       </div>
 

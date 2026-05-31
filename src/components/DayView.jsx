@@ -34,12 +34,10 @@ const DETAIL_FIELDS = [
 function parseCombos(json) {
   try {
     const a = JSON.parse(json || '[]')
-    return [
-      [a[0]?.[0] || '', a[0]?.[1] || ''],
-      [a[1]?.[0] || '', a[1]?.[1] || ''],
-    ]
+    const pairs = a.map((p) => [p?.[0] || '', p?.[1] || ''])
+    return pairs.length ? pairs : [['', '']]
   } catch {
-    return [['', ''], ['', '']]
+    return [['', '']]
   }
 }
 
@@ -930,6 +928,12 @@ function EditRoomPanel({ room, types, onSaved, onCancel }) {
     })
   }
 
+  const addCombo = () => setCombos(c => [...c, ['', '']])
+  const removeCombo = (ci) => setCombos(c => {
+    const next = c.filter((_, i) => i !== ci)
+    return next.length ? next : [['', '']]
+  })
+
   const submit = async (e) => {
     e.preventDefault()
     setSaving(true)
@@ -982,16 +986,22 @@ function EditRoomPanel({ room, types, onSaved, onCancel }) {
 
       <div>
         <label style={fieldStyle}>Tableaux</label>
-        {[0, 1].map(ci => (
+        {combos.map((pair, ci) => (
           <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
             <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', width: 44, flexShrink: 0 }}>Combo {ci + 1}</span>
-            <Input value={combos[ci][0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
+            <Input value={pair[0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
               style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
             <span style={{ color: 'var(--bp-text-muted)', fontSize: 11 }}>/</span>
-            <Input value={combos[ci][1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
+            <Input value={pair[1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
               style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
+            <button type="button" onClick={() => removeCombo(ci)} title="Supprimer"
+              style={{ border: 'none', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>−</button>
           </div>
         ))}
+        <button type="button" onClick={addCombo}
+          style={{ border: '1px dashed var(--bp-border)', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 12, padding: '4px 10px', borderRadius: 4 }}>
+          + Ajouter une combinaison
+        </button>
       </div>
 
       <div>
