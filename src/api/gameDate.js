@@ -9,6 +9,14 @@ export function dayToDate(dayNumber) {
   return d
 }
 
+// Mapping inverse : date réelle -> numéro de jour de jeu (null si avant le 7 nov 1993).
+export function dateToDay(date) {
+  const d = typeof date === 'string' ? new Date(date + 'T00:00:00Z') : date
+  if (!d || isNaN(d.getTime())) return null
+  const diff = Math.round((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - START.getTime()) / 86400000)
+  return diff >= 0 ? diff + 1 : null
+}
+
 export function formatGameDate(dayNumber) {
   const d = dayToDate(dayNumber)
   if (!d) return ''

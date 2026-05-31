@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
-import { Input, Select, Btn, Badge, SectionHead, EmptyState, typeColor, chessSymbol } from '../ui/primitives.jsx'
+import { Input, Select, Btn, Badge, SectionHead, EmptyState, typeColor, chessSymbol, chessLabel } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import RoomForm from './RoomForm.jsx'
 import LinksPanel from './LinksPanel.jsx'
@@ -49,7 +49,7 @@ function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--bp-text)' }}>{room.name}</span>
             {room.chess_pieces && chessSymbol(room.chess_pieces) && (
-              <span style={{ fontSize: 14, color: 'var(--bp-text-muted)' }}>{chessSymbol(room.chess_pieces)}</span>
+              <span title={chessLabel(room.chess_pieces)} style={{ fontSize: 14, color: 'var(--bp-text-muted)', cursor: 'help' }}>{chessSymbol(room.chess_pieces)}</span>
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>

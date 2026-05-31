@@ -8,10 +8,12 @@ import RoomsView from './components/RoomsView.jsx'
 import PeopleView from './components/PeopleView.jsx'
 import CodesView from './components/CodesView.jsx'
 import NotesView from './components/NotesView.jsx'
+import EntitiesView from './components/EntitiesView.jsx'
 import Whiteboard from './components/Whiteboard.jsx'
 import RelationsGraph from './components/RelationsGraph.jsx'
 import Genealogy from './components/Genealogy.jsx'
 import DateCalc from './components/DateCalc.jsx'
+import CalendarView from './components/CalendarView.jsx'
 
 const NAV_ITEMS = [
   { id: 'day',    label: 'Jour',       icon: 'grid' },
@@ -19,13 +21,15 @@ const NAV_ITEMS = [
   { id: 'people', label: 'Personnes',  icon: 'people' },
   { id: 'codes',  label: 'Codes',      icon: 'key' },
   { id: 'notes',  label: 'Notes',      icon: 'note' },
+  { id: 'entities', label: 'Entités',  icon: 'grid' },
 ]
 
 const EXTRA_ITEMS = [
+  { id: 'calendar',  label: 'Calendrier', icon: 'calendar' },
   { id: 'relations', label: 'Relations', icon: 'people' },
   { id: 'genealogy', label: 'Généalogie', icon: 'crown' },
   { id: 'board',     label: 'Whiteboard', icon: 'edit' },
-  { id: 'date',      label: 'Calendrier', icon: 'calendar' },
+  { id: 'date',      label: 'Calcul date', icon: 'calendar' },
 ]
 
 function Sidebar({ tab, setTab }) {
@@ -263,6 +267,8 @@ function AppContent() {
         {tab === 'people' && <PeopleView />}
         {tab === 'codes' && <CodesView />}
         {tab === 'notes' && <NotesView />}
+        {tab === 'entities' && <EntitiesView />}
+        {tab === 'calendar' && <CalendarView />}
         {tab === 'relations' && <RelationsGraph />}
         {tab === 'genealogy' && <Genealogy />}
         {tab === 'board' && <Whiteboard />}

@@ -5,7 +5,7 @@ import { useWs } from '../api/useWs.js'
 import { useCurrentDay } from '../api/currentDay.js'
 import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
-import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, chessSymbol, CHESS_SYMBOLS } from '../ui/primitives.jsx'
+import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, chessSymbol, chessLabel, CHESS_SYMBOLS } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import { lookupRoom, roomIconUrl } from '../api/roomCatalog.js'
 
@@ -316,6 +316,7 @@ export default function DayView() {
               const color = p ? typeColor(p.room_type, types) : null
               const isSelected = selectedCell?.row === r && selectedCell?.col === c
               const chess = p ? chessSymbol(p.chess_pieces) : null
+              const chessName = p ? chessLabel(p.chess_pieces) : null
 
               if (fixed) {
                 const fixedIcon = roomIconUrl(fixedName)
@@ -396,9 +397,9 @@ export default function DayView() {
 
                   {/* Top-right: chess piece */}
                   {chess && (
-                    <span style={{
+                    <span title={chessName} style={{
                       position: 'absolute', top: 3, right: 5,
-                      fontSize: 11, opacity: 0.75,
+                      fontSize: 11, opacity: 0.75, cursor: 'help',
                     }}>{chess}</span>
                   )}
 

@@ -16,6 +16,10 @@ function allEntities() {
     out.push({ type: 'code', id: c.id, label: `🔑 ${c.value}` })
   for (const n of db.prepare('SELECT id, title FROM notes').all())
     out.push({ type: 'note', id: n.id, label: n.title || `Note #${n.id}` })
+  for (const e of db.prepare('SELECT id, title FROM entities').all())
+    out.push({ type: 'entity', id: e.id, label: e.title || `Entité #${e.id}` })
+  for (const ev of db.prepare('SELECT id, title FROM events').all())
+    out.push({ type: 'event', id: ev.id, label: ev.title || `Événement #${ev.id}` })
   return out
 }
 

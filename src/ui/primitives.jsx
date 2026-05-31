@@ -94,6 +94,11 @@ export const CHESS_SYMBOLS = {
   pawn: '♟', knight: '♞', bishop: '♝', rook: '♜', queen: '♛', king: '♚',
 }
 
+export const CHESS_LABELS = {
+  king: 'Roi', queen: 'Dame', rook: 'Tour',
+  bishop: 'Fou', knight: 'Cavalier', pawn: 'Pion',
+}
+
 const CHESS_PIECES_LIST = [
   { key: '', label: 'Aucune' },
   { key: 'king',   symbol: '♚' },
@@ -103,6 +108,17 @@ const CHESS_PIECES_LIST = [
   { key: 'knight', symbol: '♞' },
   { key: 'pawn',   symbol: '♟' },
 ]
+
+// Reverse-map a displayed symbol back to its French name, for tooltips.
+export function chessLabel(chess_pieces) {
+  if (!chess_pieces) return null
+  if (CHESS_LABELS[chess_pieces]) return CHESS_LABELS[chess_pieces]
+  const sym = chessSymbol(chess_pieces)
+  for (const [k, v] of Object.entries(CHESS_SYMBOLS)) {
+    if (v === sym) return CHESS_LABELS[k]
+  }
+  return chess_pieces
+}
 
 export function chessSymbol(chess_pieces) {
   if (!chess_pieces) return null
@@ -128,6 +144,7 @@ export function ChessPieceSelector({ value, onChange }) {
           <button
             key={key}
             type="button"
+            title={key ? CHESS_LABELS[key] : 'Aucune'}
             onClick={() => onChange(key)}
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

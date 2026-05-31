@@ -62,6 +62,16 @@ export const api = {
   createNote: (body) => req('/notes', { method: 'POST', body }),
   updateNote: (id, body) => req(`/notes/${id}`, { method: 'PUT', body }),
   deleteNote: (id) => req(`/notes/${id}`, { method: 'DELETE' }),
+  // entities (objets liables : titre + description)
+  listEntityItems: () => req('/entities'),
+  createEntityItem: (body) => req('/entities', { method: 'POST', body }),
+  updateEntityItem: (id, body) => req(`/entities/${id}`, { method: 'PUT', body }),
+  deleteEntityItem: (id) => req(`/entities/${id}`, { method: 'DELETE' }),
+  // events (événements datés : date + titre + description)
+  listEvents: () => req('/events'),
+  createEvent: (body) => req('/events', { method: 'POST', body }),
+  updateEvent: (id, body) => req(`/events/${id}`, { method: 'PUT', body }),
+  deleteEvent: (id) => req(`/events/${id}`, { method: 'DELETE' }),
   // links
   listEntities: () => req('/links/entities'),
   linksFor: (type, id) => req(`/links?type=${type}&id=${id}`),
@@ -75,6 +85,8 @@ export const api = {
       case 'person': { const p = await api.createPerson({ name: label }); return { type, id: p.id, label: p.name } }
       case 'code': { const c = await api.createCode({ value: label }); return { type, id: c.id, label: c.value } }
       case 'note': { const n = await api.createNote({ title: label, body: '' }); return { type, id: n.id, label: n.title } }
+      case 'entity': { const e = await api.createEntityItem({ title: label, description: '' }); return { type, id: e.id, label: e.title } }
+      case 'event': { const ev = await api.createEvent({ title: label, description: '', date: null }); return { type, id: ev.id, label: ev.title } }
       case 'day': { const d = await api.startDay(Number(label)); return { type, id: d.day_number, label: `Days ${d.day_number}` } }
       default: throw new Error('type inconnu: ' + type)
     }
