@@ -1,7 +1,98 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useAuth } from '../AuthContext.jsx'
+import { Input, TextArea, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
+import { Icons } from '../ui/Icons.jsx'
 import LinksPanel from './LinksPanel.jsx'
+
+function NoteCard({ note, onChange, canEdit }) {
+  const [title, setTitle] = useState(note.title || '')
+  const [body, setBody] = useState(note.body || '')
+  const [titleFocused, setTitleFocused] = useState(false)
+
+  const save = useCallback(async () => {
+    if (title === (note.title || '') && body === (note.body || '')) return
+    await api.updateNote(note.id, { title, body })
+    onChange()
+  }, [note.id, note.title, note.body, title, body, onChange])
+
+  const remove = async () => {
+    if (!confirm('Supprimer cette note ?')) return
+    await api.deleteNote(note.id)
+    onChange()
+  }
+
+  return (
+    <div style={{
+      background: 'var(--bp-surface)',
+      borderRadius: 10,
+      border: '1px solid var(--bp-border)',
+      padding: 16,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 10,
+    }}>
+      {/* Title row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onFocus={() => setTitleFocused(true)}
+          onBlur={() => { setTitleFocused(false); if (canEdit) save() }}
+          readOnly={!canEdit}
+          placeholder="Titre…"
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            borderBottom: titleFocused
+              ? '1px solid var(--bp-accent)'
+              : '1px solid transparent',
+            outline: 'none',
+            fontFamily: 'var(--font-heading)',
+            fontSize: 15,
+            fontWeight: 700,
+            color: 'var(--bp-text)',
+            padding: '2px 0',
+            cursor: canEdit ? 'text' : 'default',
+          }}
+        />
+        {canEdit && (
+          <button
+            onClick={remove}
+            title="Supprimer"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: 'var(--bp-text-muted)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: 4,
+              borderRadius: 4,
+              flexShrink: 0,
+            }}
+          >
+            <Icons.trash style={{ width: 14, height: 14, color: '#E87070' }} />
+          </button>
+        )}
+      </div>
+
+      {/* Body */}
+      <TextArea
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        onBlur={canEdit ? save : undefined}
+        readOnly={!canEdit}
+        rows={4}
+        placeholder="Contenu de la note…"
+      />
+
+      {/* Links */}
+      <LinksPanel type="note" id={note.id} />
+    </div>
+  )
+}
 
 export default function NotesView() {
   const { role } = useAuth()
@@ -21,49 +112,46 @@ export default function NotesView() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h2 className="text-2xl font-bold mb-5">🗒 Notes</h2>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 28px' }}>
+      <SectionHead title="Notes" />
+
+      {/* Add form */}
       {canEdit && (
-        <form onSubmit={add} className="flex gap-2 mb-6">
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Titre de la note…"
-            className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2" />
-          <button className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium">Ajouter</button>
+        <form onSubmit={add} style={{
+          display: 'flex',
+          gap: 10,
+          maxWidth: 500,
+          marginBottom: 20,
+        }}>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Titre de la note…"
+          />
+          <Btn type="submit" variant="accent" style={{ flexShrink: 0 }}>
+            <Icons.plus style={{ width: 14, height: 14 }} />
+            Ajouter
+          </Btn>
         </form>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {notes.map((n) => <NoteCard key={n.id} note={n} onChange={load} canEdit={canEdit} />)}
-        {notes.length === 0 && <p className="text-slate-500">Aucune note.</p>}
-      </div>
-    </div>
-  )
-}
 
-function NoteCard({ note, onChange, canEdit }) {
-  const [title, setTitle] = useState(note.title || '')
-  const [body, setBody] = useState(note.body || '')
-
-  const save = async () => {
-    if (title === (note.title || '') && body === (note.body || '')) return
-    await api.updateNote(note.id, { title, body })
-    onChange()
-  }
-  const remove = async () => {
-    if (!confirm('Supprimer cette note ?')) return
-    await api.deleteNote(note.id)
-    onChange()
-  }
-
-  return (
-    <div className="bg-slate-800 rounded-xl p-4 space-y-3">
-      <div className="flex gap-2">
-        <input value={title} onChange={(e) => setTitle(e.target.value)} onBlur={canEdit ? save : undefined} readOnly={!canEdit}
-          className="flex-1 bg-transparent font-bold text-lg outline-none border-b border-transparent focus:border-slate-600" />
-        {canEdit && <button onClick={remove} className="text-red-400 hover:text-red-300 text-sm">Suppr</button>}
-      </div>
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} onBlur={canEdit ? save : undefined} readOnly={!canEdit} rows={3}
-        placeholder="Contenu…"
-        className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5 text-sm" />
-      <LinksPanel type="note" id={note.id} />
+      {/* Notes grid */}
+      {notes.length === 0 ? (
+        <EmptyState
+          icon={<Icons.note style={{ width: '100%', height: '100%' }} />}
+          text="Aucune note enregistrée."
+        />
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: 12,
+        }}>
+          {notes.map((n) => (
+            <NoteCard key={n.id} note={n} onChange={load} canEdit={canEdit} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

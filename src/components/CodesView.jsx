@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
+import { Input, Btn, SectionHead, EmptyState, CODE_STATUSES } from '../ui/primitives.jsx'
+import { Icons } from '../ui/Icons.jsx'
 import LinksPanel from './LinksPanel.jsx'
 
-const STATUSES = {
-  pending: { label: 'En attente', color: 'bg-amber-600' },
-  tried: { label: 'Testé', color: 'bg-blue-600' },
-  confirmed: { label: 'Confirmé', color: 'bg-green-600' },
-  rejected: { label: 'Rejeté', color: 'bg-red-700' },
-}
-const ORDER = ['confirmed', 'pending', 'tried', 'rejected']
+const STATUS_ORDER = ['confirmed', 'pending', 'tried', 'rejected']
+const STATUS_CYCLE = { pending: 'tried', tried: 'confirmed', confirmed: 'rejected', rejected: 'pending' }
 
 export default function CodesView() {
   const { role } = useAuth()
@@ -19,63 +16,173 @@ export default function CodesView() {
   const [value, setValue] = useState('')
   const [context, setContext] = useState('')
 
-  const load = () => api.listCodes().then(setCodes)
-  useEffect(() => { load() }, [])
+  const load = useCallback(() => api.listCodes().then(setCodes), [])
+  useEffect(() => { load() }, [load])
   useWs(load, ['codes'])
 
   const add = async (e) => {
     e.preventDefault()
     if (!value.trim()) return
-    await api.createCode({ value: value.trim(), context })
-    setValue(''); setContext('')
+    await api.createCode({ value: value.trim(), context: context.trim() })
+    setValue('')
+    setContext('')
     load()
   }
 
   const cycle = async (c) => {
-    const keys = Object.keys(STATUSES)
-    const next = keys[(keys.indexOf(c.status) + 1) % keys.length]
-    await api.updateCode(c.id, { ...c, status: next })
+    const next = STATUS_CYCLE[c.status] || 'pending'
+    await api.updateCode(c.id, { status: next })
     load()
   }
 
-  const remove = async (id) => { await api.deleteCode(id); load() }
+  const remove = async (id) => {
+    if (!confirm('Supprimer ce code ?')) return
+    await api.deleteCode(id)
+    load()
+  }
 
-  const sorted = [...codes].sort((a, b) => ORDER.indexOf(a.status) - ORDER.indexOf(b.status))
+  const sorted = [...codes].sort(
+    (a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
+  )
 
   return (
-    <div className="max-w-3xl mx-auto mt-8 p-6">
-      <h2 className="text-2xl font-bold mb-6">🔑 Codes potentiels</h2>
+    <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 28px' }}>
+      <SectionHead title="Codes" />
+
+      {/* Add form */}
       {canEdit && (
-        <form onSubmit={add} className="flex gap-2 mb-6">
-          <input value={value} onChange={(e) => setValue(e.target.value)} placeholder="Code (ex: 1234)"
-            className="w-40 bg-slate-800 border border-slate-600 rounded px-3 py-2" />
-          <input value={context} onChange={(e) => setContext(e.target.value)} placeholder="Contexte / où"
-            className="flex-1 bg-slate-800 border border-slate-600 rounded px-3 py-2" />
-          <button className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium">Ajouter</button>
+        <form onSubmit={add} style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          background: 'var(--bp-surface)',
+          borderRadius: 10,
+          border: '1px solid var(--bp-border)',
+          padding: 14,
+          marginBottom: 20,
+          flexWrap: 'wrap',
+        }}>
+          <Input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="Code (ex: 1234)"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: 15,
+              fontWeight: 700,
+              width: 120,
+              flexShrink: 0,
+            }}
+          />
+          <Input
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
+            placeholder="Contexte / où trouvé…"
+            style={{ flex: '1 1 160px' }}
+          />
+          <Btn type="submit" variant="accent">
+            <Icons.plus style={{ width: 14, height: 14 }} />
+            Ajouter
+          </Btn>
         </form>
       )}
-      <div className="space-y-2">
-        {sorted.map((c) => (
-          <div key={c.id} className="bg-slate-800 rounded-lg px-4 py-3 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-lg font-bold">{c.value}</span>
-              <span className="flex-1 text-slate-400 text-sm">{c.context}</span>
-              {canEdit ? (
-                <button onClick={() => cycle(c)} className={`${STATUSES[c.status].color} px-3 py-1 rounded text-sm`}>
-                  {STATUSES[c.status].label}
-                </button>
-              ) : (
-                <span className={`${STATUSES[c.status].color} px-3 py-1 rounded text-sm`}>
-                  {STATUSES[c.status].label}
-                </span>
-              )}
-              {canEdit && <button onClick={() => remove(c.id)} className="text-red-400 hover:text-red-300 text-sm">✕</button>}
-            </div>
-            <LinksPanel type="code" id={c.id} />
-          </div>
-        ))}
-        {codes.length === 0 && <p className="text-slate-500">Aucun code noté.</p>}
-      </div>
+
+      {/* Code list */}
+      {sorted.length === 0 ? (
+        <EmptyState
+          icon={<Icons.key style={{ width: '100%', height: '100%' }} />}
+          text="Aucun code noté."
+        />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {sorted.map((c) => {
+            const st = CODE_STATUSES[c.status] || CODE_STATUSES.pending
+            return (
+              <div key={c.id} style={{
+                background: 'var(--bp-surface)',
+                borderRadius: 8,
+                border: '1px solid var(--bp-border)',
+                padding: '12px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  {/* Value */}
+                  <span style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    color: 'var(--bp-text)',
+                    minWidth: 60,
+                    flexShrink: 0,
+                  }}>
+                    {c.value}
+                  </span>
+
+                  {/* Context */}
+                  <span style={{
+                    flex: 1,
+                    fontSize: 13,
+                    color: 'var(--bp-text-dim)',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {c.context}
+                  </span>
+
+                  {/* Status cycle button */}
+                  <button
+                    onClick={canEdit ? () => cycle(c) : undefined}
+                    title={canEdit ? 'Cliquer pour changer le statut' : st.label}
+                    style={{
+                      background: st.color + '22',
+                      border: `1px solid ${st.color}55`,
+                      color: st.color,
+                      padding: '4px 10px',
+                      borderRadius: 5,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: canEdit ? 'pointer' : 'default',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                      fontFamily: 'var(--font-body)',
+                    }}
+                  >
+                    {st.label}
+                  </button>
+
+                  {/* Delete */}
+                  {canEdit && (
+                    <button
+                      onClick={() => remove(c.id)}
+                      title="Supprimer"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--bp-text-muted)',
+                        fontSize: 16,
+                        lineHeight: 1,
+                        padding: '2px 4px',
+                        borderRadius: 4,
+                        flexShrink: 0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {/* Links */}
+                <LinksPanel type="code" id={c.id} />
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

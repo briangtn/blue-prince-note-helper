@@ -3,20 +3,6 @@ import db from '../db.js'
 
 const router = Router()
 
-// Append a day number to a room's days_seen (sorted, unique)
-function addDayToRoom(roomId, dayNumber) {
-  const room = db.prepare('SELECT days_seen FROM rooms WHERE id = ?').get(roomId)
-  if (!room) return
-  const set = new Set(
-    (room.days_seen || '')
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-  )
-  set.add(String(dayNumber))
-  const sorted = [...set].map(Number).sort((a, b) => a - b).join(',')
-  db.prepare('UPDATE rooms SET days_seen = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(sorted, roomId)
-}
 
 router.get('/', (req, res) => {
   res.json(db.prepare('SELECT * FROM days ORDER BY day_number DESC').all())
@@ -33,7 +19,7 @@ router.get('/:n', (req, res) => {
   const day = db.prepare('SELECT * FROM days WHERE day_number = ?').get(n)
   const placements = db
     .prepare(
-      `SELECT p.*, r.name AS room_name, r.type AS room_type
+      `SELECT p.*, r.name AS room_name, r.type AS room_type, r.chess_pieces AS chess_pieces
        FROM day_placements p LEFT JOIN rooms r ON r.id = p.room_id
        WHERE p.day_number = ?`
     )
@@ -59,7 +45,6 @@ router.put('/:n/placement', (req, res) => {
      ON CONFLICT(day_number, row, col)
      DO UPDATE SET room_id = excluded.room_id, note = excluded.note`
   ).run(n, row, col, room_id ?? null, note ?? null)
-  if (room_id) addDayToRoom(room_id, n)
   res.json({ ok: true })
 })
 

@@ -26,29 +26,33 @@ router.delete('/types/:id', (req, res) => {
 })
 
 // Rooms
-const FIELDS = ['name', 'type', 'position', 'tableau_combo', 'tableau_combos', 'chess_pieces', 'objects', 'letters', 'days_seen', 'notes', 'gem_cost']
+const FIELDS = ['name', 'type', 'position', 'tableau_combo', 'tableau_combos', 'chess_pieces', 'objects', 'letters', 'notes', 'gem_cost']
+
+const DAYS_SEEN_SUBQUERY = `(SELECT GROUP_CONCAT(dn, ',') FROM (
+  SELECT DISTINCT day_number AS dn FROM day_placements WHERE room_id = r.id ORDER BY day_number
+)) AS days_seen`
 
 router.get('/', (req, res) => {
   const { type, q } = req.query
-  let sql = 'SELECT * FROM rooms'
+  let sql = `SELECT r.*, ${DAYS_SEEN_SUBQUERY} FROM rooms r`
   const where = []
   const params = []
   if (type) {
-    where.push('type = ?')
+    where.push('r.type = ?')
     params.push(type)
   }
   if (q) {
-    where.push('(name LIKE ? OR notes LIKE ? OR objects LIKE ?)')
+    where.push('(r.name LIKE ? OR r.notes LIKE ? OR r.objects LIKE ?)')
     const like = `%${q}%`
     params.push(like, like, like)
   }
   if (where.length) sql += ' WHERE ' + where.join(' AND ')
-  sql += ' ORDER BY updated_at DESC'
+  sql += ' ORDER BY r.updated_at DESC'
   res.json(db.prepare(sql).all(...params))
 })
 
 router.get('/:id', (req, res) => {
-  res.json(db.prepare('SELECT * FROM rooms WHERE id = ?').get(req.params.id))
+  res.json(db.prepare(`SELECT r.*, ${DAYS_SEEN_SUBQUERY} FROM rooms r WHERE r.id = ?`).get(req.params.id))
 })
 
 router.post('/', (req, res) => {

@@ -2,17 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
-import { meta, ENTITY_TYPES } from '../api/entities.js'
+import { ENTITY_TYPES, meta } from '../api/entities.js'
+import { Input, Select, Btn } from '../ui/primitives.jsx'
 
-// Panneau de liens réutilisable pour n'importe quelle entité.
-// Props: type (string), id (number|string), compact (bool)
-export default function LinksPanel({ type, id, title = 'Liens' }) {
+export default function LinksPanel({ type, id }) {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
   const [links, setLinks] = useState([])
   const [entities, setEntities] = useState([])
   const [adding, setAdding] = useState(false)
-  const [mode, setMode] = useState('existing') // existing | new
+  const [mode, setMode] = useState('existing')
   const [target, setTarget] = useState('')
   const [label, setLabel] = useState('')
   const [newType, setNewType] = useState('person')
@@ -45,69 +44,97 @@ export default function LinksPanel({ type, id, title = 'Liens' }) {
   }
 
   const remove = async (linkId) => { await api.deleteLink(linkId); load() }
-
-  // exclut l'entité elle-même de la liste de cibles
   const options = entities.filter((e) => !(e.type === type && String(e.id) === String(id)))
 
+  const etLabel = (t) => {
+    const m = meta(t)
+    return m.label
+  }
+
   return (
-    <div className="bg-slate-900/60 rounded-lg p-3">
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="font-semibold text-sm">🔗 {title}</h4>
+    <div style={{
+      padding: 10, borderRadius: 6, background: 'var(--bp-bg)',
+      border: '1px solid var(--bp-border)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--bp-text-dim)' }}>Liens</span>
         {canEdit && (
-          <button onClick={() => setAdding((v) => !v)} className="text-cyan-400 hover:text-cyan-300 text-sm">
-            {adding ? '×' : '+ lien'}
-          </button>
+          <button onClick={() => setAdding(!adding)} style={{
+            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--bp-accent)', fontSize: 11,
+          }}>{adding ? '×' : '+ lien'}</button>
         )}
       </div>
 
       {adding && (
-        <form onSubmit={add} className="space-y-2 mb-3">
-          <div className="flex gap-1 text-xs">
-            <button type="button" onClick={() => setMode('existing')}
-              className={`px-2 py-1 rounded ${mode === 'existing' ? 'bg-cyan-600' : 'bg-slate-700'}`}>Existant</button>
-            <button type="button" onClick={() => setMode('new')}
-              className={`px-2 py-1 rounded ${mode === 'new' ? 'bg-cyan-600' : 'bg-slate-700'}`}>Nouveau</button>
+        <form onSubmit={add} style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 4, fontSize: 11 }}>
+            <button type="button" onClick={() => setMode('existing')} style={{
+              padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer', fontSize: 11,
+              background: mode === 'existing' ? 'var(--bp-accent)' : 'var(--bp-panel)',
+              color: mode === 'existing' ? '#fff' : 'var(--bp-text-dim)',
+            }}>Existant</button>
+            <button type="button" onClick={() => setMode('new')} style={{
+              padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer', fontSize: 11,
+              background: mode === 'new' ? 'var(--bp-accent)' : 'var(--bp-panel)',
+              color: mode === 'new' ? '#fff' : 'var(--bp-text-dim)',
+            }}>Nouveau</button>
           </div>
           {mode === 'existing' ? (
-            <select value={target} onChange={(e) => setTarget(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm">
+            <Select value={target} onChange={e => setTarget(e.target.value)}
+              style={{ padding: '4px 8px', fontSize: 11 }}>
               <option value="">— relier à —</option>
-              {options.map((e) => (
-                <option key={`${e.type}::${e.id}`} value={`${e.type}::${e.id}`}>
-                  {meta(e.type).icon} {e.label}
-                </option>
-              ))}
-            </select>
+              {ENTITY_TYPES.map(et => {
+                const ents = options.filter(e => e.type === et)
+                if (!ents.length) return null
+                return (
+                  <optgroup key={et} label={meta(et).label}>
+                    {ents.map(e => <option key={`${e.type}::${e.id}`} value={`${e.type}::${e.id}`}>{e.label}</option>)}
+                  </optgroup>
+                )
+              })}
+            </Select>
           ) : (
-            <div className="flex gap-2">
-              <select value={newType} onChange={(e) => setNewType(e.target.value)}
-                className="bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm">
-                {ENTITY_TYPES.map((t) => <option key={t} value={t}>{meta(t).icon} {meta(t).label}</option>)}
-              </select>
-              <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)}
+            <div style={{ display: 'flex', gap: 4 }}>
+              <Select value={newType} onChange={e => setNewType(e.target.value)}
+                style={{ width: 100, padding: '4px 8px', fontSize: 11 }}>
+                {ENTITY_TYPES.map(t => <option key={t} value={t}>{meta(t).label}</option>)}
+              </Select>
+              <Input value={newLabel} onChange={e => setNewLabel(e.target.value)}
                 placeholder={newType === 'day' ? 'n° du jour' : 'nom / valeur'}
-                className="flex-1 min-w-0 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm" />
+                style={{ padding: '4px 8px', fontSize: 11 }} />
             </div>
           )}
-          <div className="flex gap-2">
-            <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="label du lien (optionnel)"
-              className="flex-1 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm" />
-            <button className="bg-cyan-600 hover:bg-cyan-500 px-3 rounded text-sm">OK</button>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <Input value={label} onChange={e => setLabel(e.target.value)}
+              placeholder="label (optionnel)" style={{ padding: '4px 8px', fontSize: 11 }}
+              onKeyDown={e => e.key === 'Enter' && add(e)} />
+            <Btn small variant="accent" onClick={add} style={{ padding: '4px 8px', fontSize: 11 }}>OK</Btn>
           </div>
         </form>
       )}
 
-      <ul className="space-y-1">
-        {links.map((l) => (
-          <li key={l.id} className="flex items-center gap-2 text-sm bg-slate-800/60 rounded px-2 py-1">
-            <span>{meta(l.other_type).icon}</span>
-            <span className="flex-1 truncate">{l.other_label}</span>
-            {l.label && <span className="text-xs text-slate-400 italic">{l.label}</span>}
-            {canEdit && <button onClick={() => remove(l.id)} className="text-red-400 hover:text-red-300 text-xs">✕</button>}
-          </li>
-        ))}
-        {links.length === 0 && !adding && <li className="text-xs text-slate-500">Aucun lien.</li>}
-      </ul>
+      {links.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {links.map(l => (
+            <div key={l.id} style={{
+              display: 'flex', alignItems: 'center', gap: 6, fontSize: 11,
+              padding: '3px 6px', borderRadius: 4, background: 'var(--bp-surface)',
+            }}>
+              <span style={{ color: 'var(--bp-text-muted)', fontSize: 9, flexShrink: 0 }}>{etLabel(l.other_type)}</span>
+              <span style={{ flex: 1, color: 'var(--bp-text)', fontWeight: 500 }}>{l.other_label}</span>
+              {l.label && <span style={{ color: 'var(--bp-text-muted)', fontStyle: 'italic' }}>{l.label}</span>}
+              {canEdit && (
+                <button onClick={() => remove(l.id)} style={{
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--bp-text-muted)',
+                  padding: 0, fontSize: 12, lineHeight: 1,
+                }}>×</button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        !adding && <span style={{ fontSize: 10, color: 'var(--bp-text-muted)' }}>Aucun lien</span>
+      )}
     </div>
   )
 }

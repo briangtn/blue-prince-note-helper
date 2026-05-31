@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../AuthContext.jsx'
+import { Icons } from '../ui/Icons.jsx'
+import { Input, Btn } from '../ui/primitives.jsx'
 
 export default function LoginForm() {
   const { login } = useAuth()
@@ -22,32 +24,49 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="flex items-center justify-center h-full bg-slate-950">
-      <form onSubmit={submit} className="bg-slate-900 border border-slate-700 rounded-lg p-8 w-80 space-y-4">
-        <h1 className="text-xl font-bold text-cyan-400 text-center">Blue Prince Helper</h1>
-        {error && <p className="text-red-400 text-sm text-center">{error}</p>}
-        <input
-          type="text"
-          placeholder="Utilisateur"
-          value={user}
-          onChange={(e) => setUser(e.target.value)}
-          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
-          autoFocus
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', background: 'var(--bp-bg-deep)',
+    }}>
+      <form onSubmit={submit} style={{
+        background: 'var(--bp-surface)', border: '1px solid var(--bp-border)',
+        borderRadius: 12, padding: 32, width: 320,
+        display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 8,
+            background: 'var(--bp-accent)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icons.crown style={{ width: 20, height: 20, color: '#fff' }} />
+          </div>
+          <span style={{
+            fontFamily: 'var(--font-heading)', fontSize: 20, fontWeight: 700, color: 'var(--bp-text)',
+          }}>Blue Prince</span>
+        </div>
+
+        {error && (
+          <div style={{
+            textAlign: 'center', fontSize: 12, color: '#E87070',
+            padding: '6px 10px', borderRadius: 6,
+            background: '#C8545422', border: '1px solid #C8545444',
+          }}>{error}</div>
+        )}
+
+        <Input
+          type="text" placeholder="Utilisateur" value={user}
+          onChange={(e) => setUser(e.target.value)} autoFocus
         />
-        <input
-          type="password"
-          placeholder="Mot de passe"
-          value={pass}
+        <Input
+          type="password" placeholder="Mot de passe" value={pass}
           onChange={(e) => setPass(e.target.value)}
-          className="w-full px-3 py-2 bg-slate-800 border border-slate-600 rounded text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
         />
-        <button
-          type="submit"
-          disabled={loading || !user || !pass}
-          className="w-full py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-700 disabled:text-slate-500 rounded font-medium transition-colors"
-        >
+        <Btn variant="accent" disabled={loading || !user || !pass}
+          style={{ width: '100%', justifyContent: 'center', padding: '10px 14px', fontSize: 14 }}
+          onClick={submit}>
           {loading ? 'Connexion...' : 'Se connecter'}
-        </button>
+        </Btn>
       </form>
     </div>
   )

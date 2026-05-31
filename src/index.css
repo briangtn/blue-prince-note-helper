@@ -1,6 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bp-bg-deep: #080F1A;
+  --bp-bg: #0C1726;
+  --bp-surface: #111E30;
+  --bp-panel: #182A42;
+  --bp-card: #1E3350;
+  --bp-border: #233B58;
+  --bp-border-hover: #3A5A80;
+  --bp-text: #D1DEE8;
+  --bp-text-dim: #8B9DB0;
+  --bp-text-muted: #4E6478;
+  --bp-accent: #4B7FBF;
+  --bp-accent-glow: #5A9AE0;
+  --bp-gold: #C9A84C;
+  --bp-gold-dim: #A08838;
+  --font-heading: 'Spectral', Georgia, serif;
+  --font-body: 'Outfit', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+.theme-manoir {
+  --bp-bg-deep: #0E0A08;
+  --bp-bg: #151010;
+  --bp-surface: #1D1614;
+  --bp-panel: #2A201C;
+  --bp-card: #352B24;
+  --bp-border: #3E3028;
+  --bp-border-hover: #5D4D3E;
+  --bp-text: #E0D5C3;
+  --bp-text-dim: #A09482;
+  --bp-text-muted: #65564A;
+  --bp-accent: #C9A84C;
+  --bp-accent-glow: #DBBA5E;
+  --bp-gold: #C9A84C;
+  --bp-gold-dim: #A08838;
+}
+
+.theme-moderne {
+  --bp-bg-deep: #0A0C10;
+  --bp-bg: #0E1117;
+  --bp-surface: #161B22;
+  --bp-panel: #1C2333;
+  --bp-card: #242D3D;
+  --bp-border: #2D3545;
+  --bp-border-hover: #484F58;
+  --bp-text: #E6EDF3;
+  --bp-text-dim: #8B949E;
+  --bp-text-muted: #484F58;
+  --bp-accent: #58A6FF;
+  --bp-accent-glow: #79C0FF;
+  --bp-gold: #F0883E;
+  --bp-gold-dim: #D18616;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
 html, body, #root { height: 100%; margin: 0; }
-body { background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bp-bg-deep);
+  color: var(--bp-text);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bp-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bp-border-hover); }
+
+::selection { background: var(--bp-accent); color: white; }
+
+textarea { line-height: 1.5; }
+
+nav button, header button { user-select: none; }

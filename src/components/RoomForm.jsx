@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react'
 import { lookupRoom, KNOWN_ROOM_NAMES } from '../api/roomCatalog.js'
+import { Input, TextArea, Select, Btn, ChessPieceSelector } from '../ui/primitives.jsx'
 
 const EMPTY = {
   name: '', type: '', position: '', tableau_combo: '', tableau_combos: '',
-  chess_pieces: '', objects: '', letters: '', days_seen: '', notes: '', gem_cost: '',
+  chess_pieces: '', objects: '', letters: '', notes: '', gem_cost: '',
 }
-
-const FIELDS = [
-  ['position', 'Position (ex: C3)', 'text'],
-  ['gem_cost', 'Coût 💎 (gemmes)', 'text'],
-  ['chess_pieces', "Pièces d'échecs", 'text'],
-  ['objects', 'Objets trouvables', 'text'],
-  ['letters', 'Lettres trouvées (ex: 3,7,12)', 'text'],
-  ['days_seen', 'Jours vus (ex: 6,14)', 'text'],
-]
 
 const parseCombos = (json) => {
   try {
@@ -38,7 +30,6 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
-  // Auto-remplissage depuis le catalogue quand le nom correspond exactement
   const [matched, setMatched] = useState(false)
   const handleName = (e) => {
     const value = e.target.value
@@ -74,57 +65,74 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
   }
 
   return (
-    <form onSubmit={submit} className="bg-slate-800 rounded-xl p-5 space-y-3">
-      <h3 className="font-bold text-lg">{initial?.id ? 'Modifier' : 'Nouvelle pièce'}</h3>
-      <div className="grid grid-cols-2 gap-3">
+    <form onSubmit={submit} style={{
+      display: 'flex', flexDirection: 'column', gap: 12,
+    }}>
+      <div style={{ fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 600 }}>
+        {initial?.id ? `Éditer — ${initial.name}` : 'Nouvelle pièce'}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">
-            Nom de la pièce {matched && <span className="text-green-400">✓ auto-rempli</span>}
+          <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>
+            Nom {matched && <span style={{ color: '#5BAD6E' }}>auto-rempli</span>}
           </label>
-          <input list="room-catalog" value={form.name} onChange={handleName} required
-            placeholder="Tape le nom exact (auto type + 💎)"
-            className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5" />
+          <Input list="room-catalog" value={form.name} onChange={handleName} required placeholder="Nom de la pièce" />
           <datalist id="room-catalog">
             {KNOWN_ROOM_NAMES.map((n) => <option key={n} value={n} />)}
           </datalist>
         </div>
         <div>
-          <label className="block text-xs text-slate-400 mb-1">Type</label>
-          <select value={form.type} onChange={set('type')} className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5">
-            {types.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
-          </select>
+          <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Type</label>
+          <Select value={form.type} onChange={set('type')}>
+            {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+          </Select>
         </div>
-        {FIELDS.map(([key, label, type]) => (
-          <div key={key}>
-            <label className="block text-xs text-slate-400 mb-1">{label}</label>
-            <input type={type} value={form[key]} onChange={set(key)}
-              className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5" />
-          </div>
-        ))}
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Position</label>
+          <Input value={form.position || ''} onChange={set('position')} placeholder="ex: C3" />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Coût gemmes</label>
+          <Input type="number" value={form.gem_cost} onChange={set('gem_cost')} placeholder="0" />
+        </div>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Pièce d'échecs</label>
+          <ChessPieceSelector value={form.chess_pieces || ''} onChange={(v) => setForm(f => ({ ...f, chess_pieces: v }))} />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Objets</label>
+          <Input value={form.objects || ''} onChange={set('objects')} placeholder="Clé, Pelle…" />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Lettres</label>
+          <Input value={form.letters || ''} onChange={set('letters')} placeholder="3,7,12" />
+        </div>
       </div>
+
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Combinaisons de tableaux (2 combos de 2)</label>
-        <div className="space-y-2">
+        <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Paires de tableaux</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {[0, 1].map((ci) => (
-            <div key={ci} className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 w-16">Combo {ci + 1}</span>
-              <input value={combos[ci][0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
-                className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5" />
-              <span className="text-slate-500">+</span>
-              <input value={combos[ci][1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
-                className="flex-1 bg-slate-900 border border-slate-600 rounded px-2 py-1.5" />
+            <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', width: 50 }}>Combo {ci + 1}</span>
+              <Input value={combos[ci][0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
+                style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
+              <span style={{ color: 'var(--bp-text-muted)', fontSize: 11 }}>/</span>
+              <Input value={combos[ci][1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
+                style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
             </div>
           ))}
         </div>
       </div>
+
       <div>
-        <label className="block text-xs text-slate-400 mb-1">Notes</label>
-        <textarea value={form.notes} onChange={set('notes')} rows={3}
-          className="w-full bg-slate-900 border border-slate-600 rounded px-2 py-1.5" />
+        <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Notes</label>
+        <TextArea rows={3} value={form.notes || ''} onChange={set('notes')} />
       </div>
-      <div className="flex gap-2">
-        <button type="submit" className="bg-cyan-600 hover:bg-cyan-500 px-4 py-2 rounded font-medium">Enregistrer</button>
-        {onCancel && <button type="button" onClick={onCancel} className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded">Annuler</button>}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Btn variant="accent" onClick={submit}>Enregistrer</Btn>
+        {onCancel && <Btn onClick={onCancel}>Annuler</Btn>}
       </div>
     </form>
   )
