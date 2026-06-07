@@ -77,10 +77,10 @@ export default function LettersPlan() {
 
                 {letters.length > 0 ? (
                   <span style={{
-                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center',
-                    gap: 4, color: 'var(--bp-gold)', fontWeight: 800, lineHeight: 1,
-                    fontSize: letters.length === 1 ? 40 : 22,
-                  }}>{letters.join(' ')}</span>
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    gap: 2, color: 'var(--bp-gold)', fontWeight: 800, lineHeight: 1,
+                    fontSize: letters.length === 1 ? 40 : 24,
+                  }}>{letters.map((l, i) => <span key={i}>{l}</span>)}</span>
                 ) : (
                   <span style={{ fontSize: 16, color: 'var(--bp-border)' }}>·</span>
                 )}
