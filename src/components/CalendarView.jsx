@@ -250,6 +250,12 @@ export default function CalendarView() {
     setSelectedId(ev.id)
   }
 
+  // Ajout d'un événement depuis la frise : daté du jour de jeu courant (ou aujourd'hui)
+  const addEventTimeline = () => {
+    const d = dayToDate(currentDay) || new Date()
+    addEvent(toISO(d))
+  }
+
   const todayISO = currentDay ? toISO(dayToDate(currentDay)) : null
 
   return (
@@ -268,6 +274,9 @@ export default function CalendarView() {
             </Btn>
             <Btn small variant="default" onClick={goToday}>Aujourd'hui (jeu)</Btn>
           </>
+        )}
+        {mode === 'timeline' && canEdit && (
+          <Btn small variant="default" onClick={addEventTimeline}>+ Événement</Btn>
         )}
         <div style={{ display: 'inline-flex', gap: 4, marginLeft: 8 }}>
           <Btn small variant={mode === 'month' ? 'accent' : 'ghost'} onClick={() => setMode('month')}>Mois</Btn>
