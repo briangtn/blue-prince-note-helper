@@ -196,7 +196,7 @@ export default function CalendarView() {
   const [currentDay] = useCurrentDay()
   const [events, setEvents] = useState([])
   const [selectedId, setSelectedId] = useState(null)
-  const [mode, setMode] = useState('month') // 'month' | 'timeline'
+  const [mode, setMode] = useState('timeline') // 'month' | 'timeline'
 
   // Mois affiché par défaut : celui de la date du jour de jeu courant
   const initial = useMemo(() => {
