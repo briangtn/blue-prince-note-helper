@@ -25,6 +25,11 @@ const DETAIL_FIELDS = [
   ['days_seen', 'Jours vus'],
 ]
 
+const EDIT_FIELDS = [
+  ['objects', 'Objets', 'Clé, Pelle…'],
+  ['letters', 'Lettres', '3,7,12'],
+]
+
 function parseCombos(json) {
   try {
     const a = JSON.parse(json || '[]')
@@ -53,9 +58,40 @@ export default function DayView() {
 
   // Selected cell and side-panel mode
   const [selectedCell, setSelectedCell] = useState(null) // {row, col}
-  const [panelMode, setPanelMode] = useState('idle') // 'idle' | 'pick' | 'detail' | 'newRoom' | 'editRoom'
+  const [panelMode, setPanelMode] = useState('idle') // 'idle' | 'pick' | 'detail' | 'newRoom'
 
   const notesTimer = useRef(null)
+
+  // ── Resizable side panel ────────────────────────────────────────────────────
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = Number(localStorage.getItem('bp_daypanel_w'))
+    return saved >= 240 && saved <= 900 ? saved : 320
+  })
+  const resizing = useRef(false)
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!resizing.current) return
+      const w = window.innerWidth - e.clientX
+      setPanelWidth(Math.min(900, Math.max(240, w)))
+    }
+    const onUp = () => {
+      if (!resizing.current) return
+      resizing.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('bp_daypanel_w', String(panelWidth))
+  }, [panelWidth])
 
   // ── Data loading ──────────────────────────────────────────────────────────
 
@@ -438,9 +474,28 @@ export default function DayView() {
         </div>
       </div>
 
+      {/* ── RESIZE HANDLE ── */}
+      <div
+        onMouseDown={() => {
+          resizing.current = true
+          document.body.style.cursor = 'col-resize'
+          document.body.style.userSelect = 'none'
+        }}
+        title="Glisser pour redimensionner"
+        style={{
+          width: 6,
+          flexShrink: 0,
+          cursor: 'col-resize',
+          background: 'transparent',
+          transition: 'background .15s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bp-accent)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+      />
+
       {/* ── RIGHT PANEL ── */}
       <div style={{
-        width: 300,
+        width: panelWidth,
         flexShrink: 0,
         display: 'flex',
         flexDirection: 'column',
@@ -494,9 +549,7 @@ function SidePanel({
         ? `Case ${label} — ${selectedPlacement?.room_name || 'Détail'}`
         : mode === 'newRoom'
           ? 'Nouvelle pièce'
-          : mode === 'editRoom'
-            ? 'Modifier la pièce'
-            : ''
+          : ''
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -546,9 +599,9 @@ function SidePanel({
             isSticky={selectedIsSticky}
             types={types}
             canEdit={canEdit}
-            onEdit={() => setMode('editRoom')}
             onRemove={onRemovePlacement}
             onToggleSticky={onToggleSticky}
+            onSaved={onRoomUpdated}
             current={current}
           />
         )}
@@ -560,14 +613,6 @@ function SidePanel({
               await onPlaceRoom(room.id, '')
             }}
             onCancel={() => setMode('pick')}
-          />
-        )}
-        {mode === 'editRoom' && selectedRoom && (
-          <EditRoomPanel
-            room={selectedRoom}
-            types={types}
-            onSaved={() => { onRoomUpdated(); setMode('detail') }}
-            onCancel={() => setMode('detail')}
           />
         )}
       </div>
@@ -693,127 +738,252 @@ function PickPanel({ rooms, types, onPick, onNewRoom }) {
 // Detail panel: show placed room info
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DetailPanel({ placement, room, isSticky, types, canEdit, onEdit, onRemove, onToggleSticky, current }) {
-  const [roomNotes, setRoomNotes] = useState(room?.notes || '')
-  const notesTimer = useRef(null)
-
-  useEffect(() => {
-    setRoomNotes(room?.notes || '')
-    return () => clearTimeout(notesTimer.current)
-  }, [room?.id])
-
-  const onRoomNotesChange = (e) => {
-    const val = e.target.value
-    setRoomNotes(val)
-    clearTimeout(notesTimer.current)
-    notesTimer.current = setTimeout(() => {
-      if (room) api.updateRoom(room.id, { ...room, notes: val })
-    }, 500)
-  }
-
+function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onToggleSticky, onSaved, current }) {
   const color = typeColor(placement.room_type, types)
 
-  const combos = room ? (() => {
-    try {
-      return JSON.parse(room.tableau_combos || '[]').filter(p => p[0] || p[1])
-    } catch { return [] }
-  })() : []
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Room header */}
-      <div>
-        <div style={{
-          fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700,
-          color: 'var(--bp-text)', marginBottom: 2,
-        }}>{placement.room_name}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Badge color={color}>{placement.room_type}</Badge>
-          {isSticky && <Badge color="var(--bp-gold)">📌 Épinglée</Badge>}
-        </div>
-      </div>
-
-      {/* Room fields */}
-      {room && (
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px',
-          background: 'var(--bp-panel)', borderRadius: 8, padding: '10px 12px',
-        }}>
-          {room.gem_cost != null && room.gem_cost !== '' && (
-            <div style={{ gridColumn: '1 / -1' }}>
-              <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginRight: 4 }}>Coût:</span>
-              <span style={{ fontSize: 12, color: 'var(--bp-gold)' }}>{room.gem_cost} 💎</span>
-            </div>
-          )}
-          {DETAIL_FIELDS.map(([k, label]) => room[k] ? (
-            <div key={k}>
-              <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginBottom: 1 }}>{label}</div>
-              <div style={{ fontSize: 12, color: 'var(--bp-text)' }}>{room[k]}</div>
-            </div>
-          ) : null)}
-        </div>
-      )}
-
-      {/* Tableau combos */}
-      {combos.length > 0 && (
+  // ── Read-only view (RO users) ─────────────────────────────────────────────
+  if (!canEdit) {
+    const combos = room ? (() => {
+      try { return JSON.parse(room.tableau_combos || '[]').filter(p => p[0] || p[1]) }
+      catch { return [] }
+    })() : []
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginBottom: 4 }}>Tableaux</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {combos.map((pair, i) => (
-              <Badge key={i} style={{ fontSize: 11 }}>
-                {pair.filter(Boolean).join(' + ')}
-              </Badge>
-            ))}
+          <div style={{
+            fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700,
+            color: 'var(--bp-text)', marginBottom: 2,
+          }}>{placement.room_name}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Badge color={color}>{placement.room_type}</Badge>
+            {isSticky && <Badge color="var(--bp-gold)">📌 Épinglée</Badge>}
           </div>
         </div>
-      )}
+        {room && (
+          <div style={{
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px',
+            background: 'var(--bp-panel)', borderRadius: 8, padding: '10px 12px',
+          }}>
+            {room.gem_cost != null && room.gem_cost !== '' && (
+              <div style={{ gridColumn: '1 / -1' }}>
+                <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginRight: 4 }}>Coût:</span>
+                <span style={{ fontSize: 12, color: 'var(--bp-gold)' }}>{room.gem_cost} 💎</span>
+              </div>
+            )}
+            {DETAIL_FIELDS.map(([k, label]) => room[k] ? (
+              <div key={k}>
+                <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginBottom: 1 }}>{label}</div>
+                <div style={{ fontSize: 12, color: 'var(--bp-text)' }}>{room[k]}</div>
+              </div>
+            ) : null)}
+          </div>
+        )}
+        {combos.length > 0 && (
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginBottom: 4 }}>Tableaux</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {combos.map((pair, i) => (
+                <Badge key={i} style={{ fontSize: 11 }}>{pair.filter(Boolean).join(' + ')}</Badge>
+              ))}
+            </div>
+          </div>
+        )}
+        {room?.notes && (
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginBottom: 4 }}>Notes</div>
+            <div style={{ fontSize: 12, color: 'var(--bp-text)', whiteSpace: 'pre-wrap' }}>{room.notes}</div>
+          </div>
+        )}
+        {room && <LinksPanel type="room" id={room.id} />}
+      </div>
+    )
+  }
 
-      {/* Room notes — editable */}
-      {room && (
+  return (
+    <EditableDetailPanel
+      placement={placement}
+      room={room}
+      isSticky={isSticky}
+      types={types}
+      color={color}
+      onRemove={onRemove}
+      onToggleSticky={onToggleSticky}
+      onSaved={onSaved}
+    />
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Editable detail panel — all room properties editable inline, auto-saved
+// ─────────────────────────────────────────────────────────────────────────────
+
+function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove, onToggleSticky, onSaved }) {
+  const [form, setForm] = useState(() => initForm(room))
+  const [combos, setCombos] = useState(() => parseCombos(room?.tableau_combos))
+  const [savedFlash, setSavedFlash] = useState(false)
+  const saveTimer = useRef(null)
+  const flashTimer = useRef(null)
+
+  // Reset local state when the selected room changes (not on every re-fetch).
+  useEffect(() => {
+    setForm(initForm(room))
+    setCombos(parseCombos(room?.tableau_combos))
+    return () => { clearTimeout(saveTimer.current); clearTimeout(flashTimer.current) }
+  }, [room?.id])
+
+  const persist = (nextForm, nextCombos) => {
+    if (!room) return
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      const clean = nextCombos.map(p => [p[0].trim(), p[1].trim()]).filter(p => p[0] || p[1])
+      await api.updateRoom(room.id, {
+        ...nextForm,
+        gem_cost: nextForm.gem_cost !== '' ? Number(nextForm.gem_cost) : null,
+        tableau_combos: JSON.stringify(clean),
+        tableau_combo: clean.flat().filter(Boolean).join(', '),
+      })
+      setSavedFlash(true)
+      clearTimeout(flashTimer.current)
+      flashTimer.current = setTimeout(() => setSavedFlash(false), 1500)
+      onSaved?.()
+    }, 600)
+  }
+
+  const set = (k) => (e) => {
+    const next = { ...form, [k]: e.target.value }
+    setForm(next)
+    persist(next, combos)
+  }
+  const setChess = (v) => {
+    const next = { ...form, chess_pieces: v }
+    setForm(next)
+    persist(next, combos)
+  }
+
+  const setCombo = (ci, pi) => (e) => {
+    const next = combos.map(pair => [...pair])
+    next[ci][pi] = e.target.value
+    setCombos(next)
+    persist(form, next)
+  }
+  const addCombo = () => {
+    const next = [...combos, ['', '']]
+    setCombos(next)
+  }
+  const removeCombo = (ci) => {
+    const filtered = combos.filter((_, i) => i !== ci)
+    const next = filtered.length ? filtered : [['', '']]
+    setCombos(next)
+    persist(form, next)
+  }
+
+  const fieldStyle = { fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {/* Header: badges + save indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <Badge color={color}>{form.type || placement.room_type}</Badge>
+        {isSticky && <Badge color="var(--bp-gold)">📌 Épinglée</Badge>}
+        <span style={{
+          marginLeft: 'auto', fontSize: 10,
+          color: savedFlash ? '#5BAD6E' : 'var(--bp-text-muted)',
+          transition: 'color .2s',
+        }}>
+          {savedFlash ? '✓ Enregistré' : 'Auto-enregistré'}
+        </span>
+      </div>
+
+      <div>
+        <label style={fieldStyle}>Nom</label>
+        <Input value={form.name} onChange={set('name')} required />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginBottom: 4 }}>Notes</div>
-          <TextArea
-            value={roomNotes}
-            onChange={canEdit ? onRoomNotesChange : undefined}
-            readOnly={!canEdit}
-            placeholder="Notes sur cette pièce…"
-            rows={4}
-          />
+          <label style={fieldStyle}>Type</label>
+          <Select value={form.type} onChange={set('type')}>
+            {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+          </Select>
         </div>
-      )}
+        <div>
+          <label style={fieldStyle}>Coût 💎</label>
+          <Input type="number" value={form.gem_cost} onChange={set('gem_cost')} placeholder="0" />
+        </div>
+        {EDIT_FIELDS.map(([k, label, ph]) => (
+          <div key={k}>
+            <label style={fieldStyle}>{label}</label>
+            <Input value={form[k]} onChange={set(k)} placeholder={ph} />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <label style={fieldStyle}>Pièce d'échecs</label>
+        <ChessPieceSelector value={form.chess_pieces} onChange={setChess} />
+      </div>
+
+      <div>
+        <label style={fieldStyle}>Tableaux</label>
+        {combos.map((pair, ci) => (
+          <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', width: 44, flexShrink: 0 }}>Combo {ci + 1}</span>
+            <Input value={pair[0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
+              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
+            <span style={{ color: 'var(--bp-text-muted)', fontSize: 11 }}>/</span>
+            <Input value={pair[1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
+              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
+            <button type="button" onClick={() => removeCombo(ci)} title="Supprimer"
+              style={{ border: 'none', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>−</button>
+          </div>
+        ))}
+        <button type="button" onClick={addCombo}
+          style={{ border: '1px dashed var(--bp-border)', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 12, padding: '4px 10px', borderRadius: 4 }}>
+          + Ajouter une combinaison
+        </button>
+      </div>
+
+      <div>
+        <label style={fieldStyle}>Notes</label>
+        <TextArea rows={4} value={form.notes} onChange={set('notes')} placeholder="Notes sur cette pièce…" />
+      </div>
 
       {/* Links */}
       {room && <LinksPanel type="room" id={room.id} />}
 
       {/* Actions */}
-      {canEdit && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Btn
-            small
-            onClick={onToggleSticky}
-            style={{ width: '100%', justifyContent: 'center' }}
-            title={isSticky
-              ? 'Cette pièce n\'apparaîtra plus sur les autres jours'
-              : 'Épingler à cette position sur toutes les parties'}
-          >
-            📌 {isSticky ? 'Détacher (toutes parties)' : 'Épingler (toutes parties)'}
-          </Btn>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Btn small onClick={onEdit} style={{ flex: 1, justifyContent: 'center' }}>
-              <Icons.edit style={{ width: 12, height: 12 }} />
-              Éditer pièce
-            </Btn>
-            <Btn small variant="danger" onClick={() => {
-              if (confirm(isSticky ? 'Détacher et retirer cette pièce épinglée ?' : 'Retirer cette pièce ?')) onRemove()
-            }}>
-              <Icons.trash style={{ width: 12, height: 12 }} />
-              Retirer
-            </Btn>
-          </div>
-        </div>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <Btn
+          small
+          onClick={onToggleSticky}
+          style={{ width: '100%', justifyContent: 'center' }}
+          title={isSticky
+            ? 'Cette pièce n\'apparaîtra plus sur les autres jours'
+            : 'Épingler à cette position sur toutes les parties'}
+        >
+          📌 {isSticky ? 'Détacher (toutes parties)' : 'Épingler (toutes parties)'}
+        </Btn>
+        <Btn small variant="danger" onClick={() => {
+          if (confirm(isSticky ? 'Détacher et retirer cette pièce épinglée ?' : 'Retirer cette pièce ?')) onRemove()
+        }} style={{ width: '100%', justifyContent: 'center' }}>
+          <Icons.trash style={{ width: 12, height: 12 }} />
+          Retirer
+        </Btn>
+      </div>
     </div>
   )
+}
+
+function initForm(room) {
+  return {
+    name: room?.name || '',
+    type: room?.type || '',
+    gem_cost: room?.gem_cost != null ? String(room.gem_cost) : '',
+    chess_pieces: room?.chess_pieces || '',
+    objects: room?.objects || '',
+    letters: room?.letters || '',
+    notes: room?.notes || '',
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -903,125 +1073,3 @@ function NewRoomPanel({ types, onCreated, onCancel }) {
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Edit room panel (full inline form)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const EDIT_FIELDS = [
-  ['objects', 'Objets', 'Clé, Pelle…'],
-  ['letters', 'Lettres', '3,7,12'],
-]
-
-function EditRoomPanel({ room, types, onSaved, onCancel }) {
-  const [form, setForm] = useState({
-    name: room.name || '',
-    type: room.type || '',
-    gem_cost: room.gem_cost != null ? String(room.gem_cost) : '',
-    chess_pieces: room.chess_pieces || '',
-    objects: room.objects || '',
-    letters: room.letters || '',
-    notes: room.notes || '',
-  })
-  const [combos, setCombos] = useState(parseCombos(room.tableau_combos))
-  const [saving, setSaving] = useState(false)
-
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
-
-  const setCombo = (ci, pi) => (e) => {
-    setCombos(c => {
-      const next = c.map(pair => [...pair])
-      next[ci][pi] = e.target.value
-      return next
-    })
-  }
-
-  const addCombo = () => setCombos(c => [...c, ['', '']])
-  const removeCombo = (ci) => setCombos(c => {
-    const next = c.filter((_, i) => i !== ci)
-    return next.length ? next : [['', '']]
-  })
-
-  const submit = async (e) => {
-    e.preventDefault()
-    setSaving(true)
-    try {
-      const clean = combos.map(p => [p[0].trim(), p[1].trim()]).filter(p => p[0] || p[1])
-      await api.updateRoom(room.id, {
-        ...form,
-        gem_cost: form.gem_cost !== '' ? Number(form.gem_cost) : null,
-        tableau_combos: JSON.stringify(clean),
-        tableau_combo: clean.flat().filter(Boolean).join(', '),
-      })
-      onSaved()
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const fieldStyle = {
-    fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4,
-  }
-
-  return (
-    <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div>
-        <label style={fieldStyle}>Nom</label>
-        <Input value={form.name} onChange={set('name')} required />
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        <div>
-          <label style={fieldStyle}>Type</label>
-          <Select value={form.type} onChange={set('type')}>
-            {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-          </Select>
-        </div>
-        <div>
-          <label style={fieldStyle}>Coût 💎</label>
-          <Input type="number" value={form.gem_cost} onChange={set('gem_cost')} placeholder="0" />
-        </div>
-        {EDIT_FIELDS.map(([k, label, ph]) => (
-          <div key={k}>
-            <label style={fieldStyle}>{label}</label>
-            <Input value={form[k]} onChange={set(k)} placeholder={ph} />
-          </div>
-        ))}
-      </div>
-      <div>
-        <label style={fieldStyle}>Pièce d'échecs</label>
-        <ChessPieceSelector value={form.chess_pieces} onChange={(v) => setForm(f => ({ ...f, chess_pieces: v }))} />
-      </div>
-
-      <div>
-        <label style={fieldStyle}>Tableaux</label>
-        {combos.map((pair, ci) => (
-          <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', width: 44, flexShrink: 0 }}>Combo {ci + 1}</span>
-            <Input value={pair[0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
-              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
-            <span style={{ color: 'var(--bp-text-muted)', fontSize: 11 }}>/</span>
-            <Input value={pair[1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
-              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
-            <button type="button" onClick={() => removeCombo(ci)} title="Supprimer"
-              style={{ border: 'none', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>−</button>
-          </div>
-        ))}
-        <button type="button" onClick={addCombo}
-          style={{ border: '1px dashed var(--bp-border)', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 12, padding: '4px 10px', borderRadius: 4 }}>
-          + Ajouter une combinaison
-        </button>
-      </div>
-
-      <div>
-        <label style={fieldStyle}>Notes</label>
-        <TextArea rows={3} value={form.notes} onChange={set('notes')} />
-      </div>
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Btn variant="accent" onClick={submit} disabled={saving} style={{ flex: 1, justifyContent: 'center' }}>
-          {saving ? '…' : 'Enregistrer'}
-        </Btn>
-        <Btn onClick={onCancel}>Annuler</Btn>
-      </div>
-    </form>
-  )
-}
