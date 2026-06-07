@@ -149,6 +149,11 @@ if (!roomCols.includes('gem_cost')) {
   db.exec('ALTER TABLE rooms ADD COLUMN gem_cost TEXT')
 }
 
+// Migration : conduite d'énergie (booléen 0/1) — la pièce transmet le courant
+if (!roomCols.includes('power_conduit')) {
+  db.exec('ALTER TABLE rooms ADD COLUMN power_conduit INTEGER DEFAULT 0')
+}
+
 // Migration : date de fin pour les événements (permet les durées / la vue timeline)
 const eventCols = db.prepare('PRAGMA table_info(events)').all().map((c) => c.name)
 if (!eventCols.includes('end_date')) {

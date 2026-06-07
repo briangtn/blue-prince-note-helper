@@ -757,6 +757,7 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Badge color={color}>{placement.room_type}</Badge>
             {isSticky && <Badge color="var(--bp-gold)">📌 Épinglée</Badge>}
+            {!!room?.power_conduit && <Badge color="var(--bp-gold)">⚡ Conduite énergie</Badge>}
           </div>
         </div>
         {room && (
@@ -943,6 +944,20 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
         </button>
       </div>
 
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--bp-text)' }}>
+        <input
+          type="checkbox"
+          checked={!!form.power_conduit}
+          onChange={(e) => {
+            const next = { ...form, power_conduit: e.target.checked ? 1 : 0 }
+            setForm(next)
+            persist(next, combos)
+          }}
+          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--bp-gold)' }}
+        />
+        ⚡ Conduite énergie
+      </label>
+
       <div>
         <label style={fieldStyle}>Notes</label>
         <TextArea rows={4} value={form.notes} onChange={set('notes')} placeholder="Notes sur cette pièce…" />
@@ -983,6 +998,7 @@ function initForm(room) {
     objects: room?.objects || '',
     letters: room?.letters || '',
     notes: room?.notes || '',
+    power_conduit: room?.power_conduit ? 1 : 0,
   }
 }
 

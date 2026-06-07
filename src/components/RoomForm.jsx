@@ -4,7 +4,7 @@ import { Input, TextArea, Select, Btn, ChessPieceSelector } from '../ui/primitiv
 
 const EMPTY = {
   name: '', type: '', position: '', tableau_combo: '', tableau_combos: '',
-  chess_pieces: '', objects: '', letters: '', notes: '', gem_cost: '',
+  chess_pieces: '', objects: '', letters: '', notes: '', gem_cost: '', power_conduit: 0,
 }
 
 const parseCombos = (json) => {
@@ -69,6 +69,7 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
     const clean = combos.map((p) => [p[0].trim(), p[1].trim()]).filter((p) => p[0] || p[1])
     onSubmit({
       ...form,
+      power_conduit: form.power_conduit ? 1 : 0,
       tableau_combos: JSON.stringify(clean),
       tableau_combo: clean.flat().filter(Boolean).join(', '),
     })
@@ -138,6 +139,16 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
           </button>
         </div>
       </div>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--bp-text)' }}>
+        <input
+          type="checkbox"
+          checked={!!form.power_conduit}
+          onChange={(e) => setForm((f) => ({ ...f, power_conduit: e.target.checked ? 1 : 0 }))}
+          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--bp-gold)' }}
+        />
+        ⚡ Conduite énergie
+      </label>
 
       <div>
         <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Notes</label>

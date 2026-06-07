@@ -62,6 +62,11 @@ function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
                 {room.gem_cost}
               </Badge>
             )}
+            {!!room.power_conduit && (
+              <Badge color="var(--bp-gold)" style={{ fontSize: 10, padding: '1px 6px' }} title="Conduite énergie">
+                ⚡ Énergie
+              </Badge>
+            )}
           </div>
         </div>
         <div style={{ color: 'var(--bp-text-muted)', flexShrink: 0 }}>
