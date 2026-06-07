@@ -71,6 +71,16 @@ db.exec(`
     UNIQUE(day_number, row, col)
   );
 
+  -- Placements "sticky" (épinglés) : globaux, affichés sur TOUS les jours à une position fixe.
+  CREATE TABLE IF NOT EXISTS sticky_placements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    row INTEGER NOT NULL,
+    col INTEGER NOT NULL,
+    room_id INTEGER,
+    note TEXT,
+    UNIQUE(row, col)
+  );
+
   CREATE TABLE IF NOT EXISTS people (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -187,6 +197,26 @@ if (hasOuter) {
     db.prepare("DELETE FROM room_types WHERE name IN ('Outer rooms', 'Founds', 'Other')").run()
   })
   migrate()
+}
+
+// Seed des pièces fixes (Antechamber, Entrance Hall) en placements sticky à leur
+// position par défaut (grille 9×5 : Antechamber en haut-centre, Entrance Hall en bas-centre).
+// Adossés à de vraies pièces pour être cliquables / liables comme n'importe quelle pièce.
+// Garde-fou idempotent : on ne seede qu'au tout premier boot (table sticky vide).
+const stickySeeded = db.prepare('SELECT COUNT(*) AS c FROM sticky_placements').get().c
+if (stickySeeded === 0) {
+  const ensureRoom = (name) => {
+    let room = db.prepare('SELECT id FROM rooms WHERE name = ?').get(name)
+    if (!room) {
+      const info = lookupRoom(name)
+      const r = db.prepare('INSERT INTO rooms (name, type) VALUES (?, ?)').run(name, info?.type || 'Blueprints')
+      room = { id: r.lastInsertRowid }
+    }
+    return room.id
+  }
+  const insertSticky = db.prepare('INSERT OR IGNORE INTO sticky_placements (row, col, room_id) VALUES (?, ?, ?)')
+  insertSticky.run(0, 2, ensureRoom('Antechamber'))   // haut-centre
+  insertSticky.run(8, 2, ensureRoom('Entrance Hall')) // bas-centre
 }
 
 export default db

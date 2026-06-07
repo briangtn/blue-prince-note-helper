@@ -14,6 +14,31 @@ router.post('/', (req, res) => {
   res.json(db.prepare('SELECT * FROM days WHERE day_number = ?').get(day_number))
 })
 
+// Placements "sticky" (épinglés) : globaux, affichés sur tous les jours.
+// ⚠️ À déclarer AVANT la route '/:n' (sinon '/sticky' serait capturé comme un numéro de jour).
+const stickyPlacements = () =>
+  db.prepare(
+    `SELECT s.*, r.name AS room_name, r.type AS room_type, r.chess_pieces AS chess_pieces
+     FROM sticky_placements s LEFT JOIN rooms r ON r.id = s.room_id`
+  ).all()
+
+router.put('/sticky', (req, res) => {
+  const { row, col, room_id, note } = req.body
+  db.prepare(
+    `INSERT INTO sticky_placements (row, col, room_id, note)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(row, col)
+     DO UPDATE SET room_id = excluded.room_id, note = excluded.note`
+  ).run(row, col, room_id ?? null, note ?? null)
+  res.json({ ok: true })
+})
+
+router.delete('/sticky', (req, res) => {
+  const { row, col } = req.body
+  db.prepare('DELETE FROM sticky_placements WHERE row = ? AND col = ?').run(row, col)
+  res.json({ ok: true })
+})
+
 router.get('/:n', (req, res) => {
   const n = req.params.n
   const day = db.prepare('SELECT * FROM days WHERE day_number = ?').get(n)
@@ -24,7 +49,7 @@ router.get('/:n', (req, res) => {
        WHERE p.day_number = ?`
     )
     .all(n)
-  res.json({ day: day || { day_number: Number(n), overall_notes: null }, placements })
+  res.json({ day: day || { day_number: Number(n), overall_notes: null }, placements, sticky: stickyPlacements() })
 })
 
 router.put('/:n', (req, res) => {

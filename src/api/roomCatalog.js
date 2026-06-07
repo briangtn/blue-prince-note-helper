@@ -132,6 +132,7 @@ const RAW = {
   'Aquarium': ['Blueprints', null],
   'Antechamber': ['Blueprints', null],
   'Room 46': ['Blueprints', null],
+  'The Basement': ['Blueprints', null],
 }
 
 // index insensible à la casse / espaces

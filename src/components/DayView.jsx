@@ -11,12 +11,6 @@ import { lookupRoom, roomIconUrl } from '../api/roomCatalog.js'
 
 const ROWS = 9
 const COLS = 5
-const ANTECHAMBER = { row: 0, col: 2 }
-const ENTRANCE = { row: ROWS - 1, col: 2 }
-
-const isFixed = (r, c) =>
-  (r === ANTECHAMBER.row && c === ANTECHAMBER.col) ||
-  (r === ENTRANCE.row && c === ENTRANCE.col)
 
 // Column letter A-E, row number 1-9
 function cellLabel(r, c) {
@@ -52,6 +46,7 @@ export default function DayView() {
   const [days, setDays] = useState([])
   const [current, setCurrentDay] = useCurrentDay()
   const [placements, setPlacements] = useState([])
+  const [sticky, setSticky] = useState([])
   const [overall, setOverall] = useState('')
   const [types, setTypes] = useState([])
   const [rooms, setRooms] = useState([])
@@ -72,8 +67,9 @@ export default function DayView() {
 
   const loadDay = useCallback((n) => {
     if (n == null) return
-    api.getDay(n).then(({ day, placements: pl }) => {
+    api.getDay(n).then(({ day, placements: pl, sticky: st }) => {
       setPlacements(pl)
+      setSticky(st || [])
       setOverall(day.overall_notes || '')
     })
   }, [])
@@ -84,7 +80,9 @@ export default function DayView() {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
-  const placementAt = (r, c) => placements.find((p) => p.row === r && p.col === c)
+  const stickyAt = (r, c) => sticky.find((p) => p.row === r && p.col === c)
+  // Les placements sticky priment : ils occupent la cellule sur tous les jours.
+  const placementAt = (r, c) => stickyAt(r, c) || placements.find((p) => p.row === r && p.col === c)
 
   const switchDay = (n) => {
     const num = Number(n)
@@ -148,16 +146,38 @@ export default function DayView() {
 
   const handleRemovePlacement = async () => {
     if (!selectedCell) return
-    await api.removePlacement(current, { row: selectedCell.row, col: selectedCell.col })
+    const { row, col } = selectedCell
+    if (stickyAt(row, col)) await api.removeSticky({ row, col })
+    else await api.removePlacement(current, { row, col })
     await loadDay(current)
     setSelectedCell(null)
     setPanelMode('idle')
   }
 
+  // Épingler (toutes parties) un placement du jour, ou détacher un placement sticky.
+  const handleToggleSticky = async () => {
+    if (!selectedCell) return
+    const { row, col } = selectedCell
+    const stick = stickyAt(row, col)
+    if (stick) {
+      // Détacher : la cellule redevient vide pour ce jour → repasser en mode sélection.
+      await api.removeSticky({ row, col })
+      await loadDay(current)
+      setPanelMode('pick')
+    } else {
+      const dayP = placements.find((p) => p.row === row && p.col === col)
+      if (!dayP) return
+      await api.setSticky({ row, col, room_id: dayP.room_id, note: dayP.note })
+      await api.removePlacement(current, { row, col })
+      await loadDay(current)
+    }
+  }
+
   // ── Stats ─────────────────────────────────────────────────────────────────
 
-  const totalCells = ROWS * COLS - 2 // minus 2 fixed
-  const placed = placements.filter(p => !isFixed(p.row, p.col)).length
+  const totalCells = ROWS * COLS
+  const occupied = new Set([...placements, ...sticky].map((p) => `${p.row}-${p.col}`))
+  const placed = occupied.size
   const free = totalCells - placed
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -211,6 +231,7 @@ export default function DayView() {
   const selectedRoom = selectedPlacement
     ? rooms.find(r => r.id === selectedPlacement.room_id) || null
     : null
+  const selectedIsSticky = selectedCell ? !!stickyAt(selectedCell.row, selectedCell.col) : false
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -308,58 +329,12 @@ export default function DayView() {
           {Array.from({ length: ROWS }).map((_, r) =>
             Array.from({ length: COLS }).map((_, c) => {
               const label = cellLabel(r, c)
-              const fixed = isFixed(r, c)
-              const fixedName = (r === ANTECHAMBER.row && c === ANTECHAMBER.col)
-                ? 'Antechamber'
-                : 'Entrance Hall'
               const p = placementAt(r, c)
+              const isStickyCell = !!stickyAt(r, c)
               const color = p ? typeColor(p.room_type, types) : null
               const isSelected = selectedCell?.row === r && selectedCell?.col === c
               const chess = p ? chessSymbol(p.chess_pieces) : null
               const chessName = p ? chessLabel(p.chess_pieces) : null
-
-              if (fixed) {
-                const fixedIcon = roomIconUrl(fixedName)
-                return (
-                  <div key={`${r}-${c}`} style={{
-                    aspectRatio: '1.2',
-                    borderRadius: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'var(--bp-panel)',
-                    border: '1px solid var(--bp-border)',
-                    padding: '4px 6px',
-                    position: 'relative',
-                    cursor: 'default',
-                  }}>
-                    <span style={{
-                      position: 'absolute', top: 4, left: 5,
-                      fontSize: 9, color: 'var(--bp-text-muted)',
-                      fontFamily: 'var(--font-mono)',
-                    }}>{label}</span>
-                    {fixedIcon && (
-                      <img src={fixedIcon} alt={fixedName} style={{
-                        position: 'absolute', inset: 0,
-                        width: '100%', height: '100%', objectFit: 'cover',
-                        borderRadius: 6,
-                      }} />
-                    )}
-                    <span style={{
-                      position: 'absolute', left: 0, right: 0, bottom: 0,
-                      padding: '3px 4px',
-                      fontSize: 10, fontWeight: 700, color: '#fff',
-                      textAlign: 'center', lineHeight: 1.2,
-                      background: fixedIcon ? 'rgba(0,0,0,0.6)' : 'transparent',
-                      borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
-                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                    }}>
-                      {fixedName}
-                    </span>
-                  </div>
-                )
-              }
 
               return (
                 <button
@@ -378,9 +353,11 @@ export default function DayView() {
                     background: p ? (color + '18') : 'transparent',
                     border: isSelected
                       ? `2px solid ${color || 'var(--bp-accent)'}`
-                      : p
-                        ? `2px solid ${color + '80'}`
-                        : '1.5px dashed var(--bp-border)',
+                      : isStickyCell
+                        ? `2px solid var(--bp-gold)`
+                        : p
+                          ? `2px solid ${color + '80'}`
+                          : '1.5px dashed var(--bp-border)',
                     boxShadow: isSelected
                       ? `0 0 0 3px ${(color || 'var(--bp-accent)') + '30'}`
                       : 'none',
@@ -393,14 +370,22 @@ export default function DayView() {
                     position: 'absolute', top: 4, left: 5,
                     fontSize: 9, color: 'var(--bp-text-muted)',
                     fontFamily: 'var(--font-mono)',
+                    zIndex: 1,
                   }}>{label}</span>
 
-                  {/* Top-right: chess piece */}
+                  {/* Top-right: chess piece + pin (épinglé) */}
                   {chess && (
                     <span title={chessName} style={{
-                      position: 'absolute', top: 3, right: 5,
-                      fontSize: 11, opacity: 0.75, cursor: 'help',
+                      position: 'absolute', top: 3, right: isStickyCell ? 22 : 5,
+                      fontSize: 11, opacity: 0.75, cursor: 'help', zIndex: 1,
                     }}>{chess}</span>
+                  )}
+                  {isStickyCell && (
+                    <span title="Épinglée (toutes les parties)" style={{
+                      position: 'absolute', top: 3, right: 5,
+                      fontSize: 11, zIndex: 1,
+                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                    }}>📌</span>
                   )}
 
                   {p ? (() => {
@@ -469,6 +454,7 @@ export default function DayView() {
           selectedCell={selectedCell}
           selectedPlacement={selectedPlacement}
           selectedRoom={selectedRoom}
+          selectedIsSticky={selectedIsSticky}
           rooms={rooms}
           types={types}
           canEdit={canEdit}
@@ -478,6 +464,7 @@ export default function DayView() {
           onClose={closePanel}
           onPlaceRoom={handlePlaceRoom}
           onRemovePlacement={handleRemovePlacement}
+          onToggleSticky={handleToggleSticky}
           onRoomCreated={() => { loadCatalog(); loadDay(current) }}
           onRoomUpdated={() => { loadCatalog(); loadDay(current) }}
         />
@@ -492,10 +479,10 @@ export default function DayView() {
 
 function SidePanel({
   mode, setMode,
-  selectedCell, selectedPlacement, selectedRoom,
+  selectedCell, selectedPlacement, selectedRoom, selectedIsSticky,
   rooms, types, canEdit, current,
   overall, onNotesChange,
-  onClose, onPlaceRoom, onRemovePlacement, onRoomCreated, onRoomUpdated,
+  onClose, onPlaceRoom, onRemovePlacement, onToggleSticky, onRoomCreated, onRoomUpdated,
 }) {
   const label = selectedCell ? cellLabel(selectedCell.row, selectedCell.col) : null
 
@@ -556,10 +543,12 @@ function SidePanel({
           <DetailPanel
             placement={selectedPlacement}
             room={selectedRoom}
+            isSticky={selectedIsSticky}
             types={types}
             canEdit={canEdit}
             onEdit={() => setMode('editRoom')}
             onRemove={onRemovePlacement}
+            onToggleSticky={onToggleSticky}
             current={current}
           />
         )}
@@ -704,7 +693,7 @@ function PickPanel({ rooms, types, onPick, onNewRoom }) {
 // Detail panel: show placed room info
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DetailPanel({ placement, room, types, canEdit, onEdit, onRemove, current }) {
+function DetailPanel({ placement, room, isSticky, types, canEdit, onEdit, onRemove, onToggleSticky, current }) {
   const [roomNotes, setRoomNotes] = useState(room?.notes || '')
   const notesTimer = useRef(null)
 
@@ -738,7 +727,10 @@ function DetailPanel({ placement, room, types, canEdit, onEdit, onRemove, curren
           fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700,
           color: 'var(--bp-text)', marginBottom: 2,
         }}>{placement.room_name}</div>
-        <Badge color={color}>{placement.room_type}</Badge>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Badge color={color}>{placement.room_type}</Badge>
+          {isSticky && <Badge color="var(--bp-gold)">📌 Épinglée</Badge>}
+        </div>
       </div>
 
       {/* Room fields */}
@@ -795,15 +787,29 @@ function DetailPanel({ placement, room, types, canEdit, onEdit, onRemove, curren
 
       {/* Actions */}
       {canEdit && (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Btn small onClick={onEdit} style={{ flex: 1, justifyContent: 'center' }}>
-            <Icons.edit style={{ width: 12, height: 12 }} />
-            Éditer pièce
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Btn
+            small
+            onClick={onToggleSticky}
+            style={{ width: '100%', justifyContent: 'center' }}
+            title={isSticky
+              ? 'Cette pièce n\'apparaîtra plus sur les autres jours'
+              : 'Épingler à cette position sur toutes les parties'}
+          >
+            📌 {isSticky ? 'Détacher (toutes parties)' : 'Épingler (toutes parties)'}
           </Btn>
-          <Btn small variant="danger" onClick={() => { if (confirm('Retirer cette pièce ?')) onRemove() }}>
-            <Icons.trash style={{ width: 12, height: 12 }} />
-            Retirer
-          </Btn>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Btn small onClick={onEdit} style={{ flex: 1, justifyContent: 'center' }}>
+              <Icons.edit style={{ width: 12, height: 12 }} />
+              Éditer pièce
+            </Btn>
+            <Btn small variant="danger" onClick={() => {
+              if (confirm(isSticky ? 'Détacher et retirer cette pièce épinglée ?' : 'Retirer cette pièce ?')) onRemove()
+            }}>
+              <Icons.trash style={{ width: 12, height: 12 }} />
+              Retirer
+            </Btn>
+          </div>
         </div>
       )}
     </div>

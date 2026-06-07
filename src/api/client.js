@@ -51,6 +51,8 @@ export const api = {
   updateDayNotes: (n, overall_notes) => req(`/days/${n}`, { method: 'PUT', body: { overall_notes } }),
   setPlacement: (n, body) => req(`/days/${n}/placement`, { method: 'PUT', body }),
   removePlacement: (n, body) => req(`/days/${n}/placement`, { method: 'DELETE', body }),
+  setSticky: (body) => req('/days/sticky', { method: 'PUT', body }),
+  removeSticky: (body) => req('/days/sticky', { method: 'DELETE', body }),
   // people
   listPeople: () => req('/people'),
   createPerson: (body) => req('/people', { method: 'POST', body }),
