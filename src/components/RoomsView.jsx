@@ -15,18 +15,9 @@ const DETAIL_FIELDS = [
   ['days_seen', 'Jours vus'],
 ]
 
-function parseTableauCombos(json) {
-  try {
-    return JSON.parse(json || '[]').filter((p) => p[0] || p[1])
-  } catch {
-    return []
-  }
-}
-
 function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false)
   const color = typeColor(room.type, types)
-  const combos = parseTableauCombos(room.tableau_combos)
 
   return (
     <div style={{
@@ -95,20 +86,6 @@ function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
               ) : null
             )}
           </div>
-
-          {/* Tableau combos */}
-          {combos.length > 0 && (
-            <div>
-              <div style={{ fontSize: 11, color: 'var(--bp-text-muted)', marginBottom: 4 }}>Tableaux</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                {combos.map((p, i) => (
-                  <Badge key={i} style={{ fontSize: 11 }}>
-                    {[p[0], p[1]].filter(Boolean).join(' + ')}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Notes */}
           {room.notes && (

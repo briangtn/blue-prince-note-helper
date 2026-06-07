@@ -53,6 +53,9 @@ export const api = {
   removePlacement: (n, body) => req(`/days/${n}/placement`, { method: 'DELETE', body }),
   setSticky: (body) => req('/days/sticky', { method: 'PUT', body }),
   removeSticky: (body) => req('/days/sticky', { method: 'DELETE', body }),
+  // tableaux par position (row, col)
+  listTableaux: () => req('/tableaux'),
+  setTableaux: (body) => req('/tableaux', { method: 'PUT', body }),
   // people
   listPeople: () => req('/people'),
   createPerson: (body) => req('/people', { method: 'POST', body }),

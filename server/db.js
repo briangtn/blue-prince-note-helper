@@ -118,6 +118,15 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- Combinaisons de tableaux par POSITION de la grille (pas par pièce).
+  -- combos = JSON [["Stage","Sage"], …] ; la lettre trouvée est dérivée côté client.
+  CREATE TABLE IF NOT EXISTS position_tableaux (
+    row INTEGER NOT NULL,
+    col INTEGER NOT NULL,
+    combos TEXT,
+    PRIMARY KEY (row, col)
+  );
+
   -- Liens universels entre n'importe quelles entités
   CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

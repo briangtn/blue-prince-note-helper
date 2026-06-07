@@ -26,7 +26,7 @@ router.delete('/types/:id', (req, res) => {
 })
 
 // Rooms
-const FIELDS = ['name', 'type', 'position', 'tableau_combo', 'tableau_combos', 'chess_pieces', 'objects', 'letters', 'notes', 'gem_cost', 'power_conduit']
+const FIELDS = ['name', 'type', 'position', 'chess_pieces', 'objects', 'letters', 'notes', 'gem_cost', 'power_conduit']
 
 const DAYS_SEEN_SUBQUERY = `(SELECT GROUP_CONCAT(dn, ',') FROM (
   SELECT DISTINCT day_number AS dn FROM day_placements WHERE room_id = r.id ORDER BY day_number

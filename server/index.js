@@ -8,6 +8,7 @@ import rooms from './routes/rooms.js'
 import codes from './routes/codes.js'
 import whiteboard from './routes/whiteboard.js'
 import days from './routes/days.js'
+import tableaux from './routes/tableaux.js'
 import people from './routes/people.js'
 import notes from './routes/notes.js'
 import entities from './routes/entities.js'
@@ -57,6 +58,7 @@ app.use('/api/rooms', rooms)
 app.use('/api/codes', codes)
 app.use('/api/whiteboard', whiteboard)
 app.use('/api/days', days)
+app.use('/api/tableaux', tableaux)
 app.use('/api/people', people)
 app.use('/api/notes', notes)
 app.use('/api/entities', entities)

@@ -8,6 +8,7 @@ import LinksPanel from './LinksPanel.jsx'
 import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, chessSymbol, chessLabel, CHESS_SYMBOLS } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import { lookupRoom, roomIconUrl } from '../api/roomCatalog.js'
+import { parseCombos, comboLetters, tableauLetter } from '../api/tableaux.js'
 
 const ROWS = 9
 const COLS = 5
@@ -30,16 +31,6 @@ const EDIT_FIELDS = [
   ['letters', 'Lettres', '3,7,12'],
 ]
 
-function parseCombos(json) {
-  try {
-    const a = JSON.parse(json || '[]')
-    const pairs = a.map((p) => [p?.[0] || '', p?.[1] || ''])
-    return pairs.length ? pairs : [['', '']]
-  } catch {
-    return [['', '']]
-  }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,6 +46,7 @@ export default function DayView() {
   const [overall, setOverall] = useState('')
   const [types, setTypes] = useState([])
   const [rooms, setRooms] = useState([])
+  const [tableaux, setTableaux] = useState([]) // [{row, col, combos}] — global par position
 
   // Selected cell and side-panel mode
   const [selectedCell, setSelectedCell] = useState(null) // {row, col}
@@ -100,6 +92,7 @@ export default function DayView() {
     api.listTypes().then(setTypes)
     api.listRooms().then(setRooms)
   }, [])
+  const loadTableaux = useCallback(() => api.listTableaux().then(setTableaux), [])
 
   const loadDay = useCallback((n) => {
     if (n == null) return
@@ -110,15 +103,18 @@ export default function DayView() {
     })
   }, [])
 
-  useEffect(() => { loadDays(); loadCatalog() }, [loadDays, loadCatalog])
+  useEffect(() => { loadDays(); loadCatalog(); loadTableaux() }, [loadDays, loadCatalog, loadTableaux])
   useEffect(() => { loadDay(current) }, [current, loadDay])
   useWs(() => { loadDays(); loadCatalog(); loadDay(current) }, ['days', 'rooms'])
+  useWs(loadTableaux, ['tableaux'])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   const stickyAt = (r, c) => sticky.find((p) => p.row === r && p.col === c)
   // Les placements sticky priment : ils occupent la cellule sur tous les jours.
   const placementAt = (r, c) => stickyAt(r, c) || placements.find((p) => p.row === r && p.col === c)
+  // Tableaux par position (global, indépendant du jour et de la pièce).
+  const tableauAt = (r, c) => tableaux.find((t) => t.row === r && t.col === c)
 
   const switchDay = (n) => {
     const num = Number(n)
@@ -178,6 +174,11 @@ export default function DayView() {
     await loadDay(current)
     loadCatalog()
     setPanelMode('detail')
+  }
+
+  const handleSaveTableaux = async (row, col, combos) => {
+    await api.setTableaux({ row, col, combos })
+    loadTableaux()
   }
 
   const handleRemovePlacement = async () => {
@@ -268,6 +269,7 @@ export default function DayView() {
     ? rooms.find(r => r.id === selectedPlacement.room_id) || null
     : null
   const selectedIsSticky = selectedCell ? !!stickyAt(selectedCell.row, selectedCell.col) : false
+  const selectedTableauCombos = selectedCell ? (tableauAt(selectedCell.row, selectedCell.col)?.combos || null) : null
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -371,6 +373,7 @@ export default function DayView() {
               const isSelected = selectedCell?.row === r && selectedCell?.col === c
               const chess = p ? chessSymbol(p.chess_pieces) : null
               const chessName = p ? chessLabel(p.chess_pieces) : null
+              const letters = comboLetters(tableauAt(r, c)?.combos)
 
               return (
                 <button
@@ -424,6 +427,19 @@ export default function DayView() {
                     }}>📌</span>
                   )}
 
+                  {/* Lettre(s) trouvée(s) pour cette position : badge en coin si pièce, sinon au centre */}
+                  {letters.length > 0 && p && (
+                    <span title={`Lettres : ${letters.join(' ')}`} style={{
+                      position: 'absolute', top: 2, left: '50%', transform: 'translateX(-50%)', zIndex: 2,
+                      fontSize: 11, fontWeight: 800, lineHeight: 1,
+                      color: 'var(--bp-gold)',
+                      padding: '1px 5px', borderRadius: 4,
+                      background: 'rgba(0,0,0,0.7)',
+                      textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+                      letterSpacing: '.04em',
+                    }}>{letters.join(' ')}</span>
+                  )}
+
                   {p ? (() => {
                     const icon = roomIconUrl(p.room_name)
                     return (
@@ -450,7 +466,13 @@ export default function DayView() {
                         </span>
                       </>
                     )
-                  })() : (
+                  })() : letters.length > 0 ? (
+                    <span style={{
+                      display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center',
+                      gap: 4, color: 'var(--bp-gold)', fontWeight: 800, lineHeight: 1,
+                      fontSize: letters.length === 1 ? 34 : 18,
+                    }}>{letters.join(' ')}</span>
+                  ) : (
                     <span style={{ fontSize: 18, color: 'var(--bp-border)', lineHeight: 1 }}>+</span>
                   )}
                 </button>
@@ -510,6 +532,8 @@ export default function DayView() {
           selectedPlacement={selectedPlacement}
           selectedRoom={selectedRoom}
           selectedIsSticky={selectedIsSticky}
+          selectedTableauCombos={selectedTableauCombos}
+          onSaveTableaux={handleSaveTableaux}
           rooms={rooms}
           types={types}
           canEdit={canEdit}
@@ -535,6 +559,7 @@ export default function DayView() {
 function SidePanel({
   mode, setMode,
   selectedCell, selectedPlacement, selectedRoom, selectedIsSticky,
+  selectedTableauCombos, onSaveTableaux,
   rooms, types, canEdit, current,
   overall, onNotesChange,
   onClose, onPlaceRoom, onRemovePlacement, onToggleSticky, onRoomCreated, onRoomUpdated,
@@ -585,12 +610,26 @@ function SidePanel({
           />
         )}
         {mode === 'pick' && (
-          <PickPanel
-            rooms={rooms}
-            types={types}
-            onPick={onPlaceRoom}
-            onNewRoom={() => setMode('newRoom')}
-          />
+          <>
+            {selectedCell && canEdit && (
+              <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--bp-border)' }}>
+                <PositionTableaux
+                  key={`${selectedCell.row}-${selectedCell.col}`}
+                  row={selectedCell.row}
+                  col={selectedCell.col}
+                  combos={selectedTableauCombos}
+                  canEdit={canEdit}
+                  onSave={onSaveTableaux}
+                />
+              </div>
+            )}
+            <PickPanel
+              rooms={rooms}
+              types={types}
+              onPick={onPlaceRoom}
+              onNewRoom={() => setMode('newRoom')}
+            />
+          </>
         )}
         {mode === 'detail' && selectedPlacement && (
           <DetailPanel
@@ -603,6 +642,9 @@ function SidePanel({
             onToggleSticky={onToggleSticky}
             onSaved={onRoomUpdated}
             current={current}
+            selectedCell={selectedCell}
+            tableauCombos={selectedTableauCombos}
+            onSaveTableaux={onSaveTableaux}
           />
         )}
         {mode === 'newRoom' && (
@@ -738,15 +780,11 @@ function PickPanel({ rooms, types, onPick, onNewRoom }) {
 // Detail panel: show placed room info
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onToggleSticky, onSaved, current }) {
+function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onToggleSticky, onSaved, current, selectedCell, tableauCombos, onSaveTableaux }) {
   const color = typeColor(placement.room_type, types)
 
   // ── Read-only view (RO users) ─────────────────────────────────────────────
   if (!canEdit) {
-    const combos = room ? (() => {
-      try { return JSON.parse(room.tableau_combos || '[]').filter(p => p[0] || p[1]) }
-      catch { return [] }
-    })() : []
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>
@@ -779,15 +817,15 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
             ) : null)}
           </div>
         )}
-        {combos.length > 0 && (
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginBottom: 4 }}>Tableaux</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {combos.map((pair, i) => (
-                <Badge key={i} style={{ fontSize: 11 }}>{pair.filter(Boolean).join(' + ')}</Badge>
-              ))}
-            </div>
-          </div>
+        {selectedCell && (
+          <PositionTableaux
+            key={`${selectedCell.row}-${selectedCell.col}`}
+            row={selectedCell.row}
+            col={selectedCell.col}
+            combos={tableauCombos}
+            canEdit={false}
+            onSave={onSaveTableaux}
+          />
         )}
         {room?.notes && (
           <div>
@@ -810,6 +848,9 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
       onRemove={onRemove}
       onToggleSticky={onToggleSticky}
       onSaved={onSaved}
+      selectedCell={selectedCell}
+      tableauCombos={tableauCombos}
+      onSaveTableaux={onSaveTableaux}
     />
   )
 }
@@ -818,9 +859,8 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
 // Editable detail panel — all room properties editable inline, auto-saved
 // ─────────────────────────────────────────────────────────────────────────────
 
-function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove, onToggleSticky, onSaved }) {
+function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove, onToggleSticky, onSaved, selectedCell, tableauCombos, onSaveTableaux }) {
   const [form, setForm] = useState(() => initForm(room))
-  const [combos, setCombos] = useState(() => parseCombos(room?.tableau_combos))
   const [savedFlash, setSavedFlash] = useState(false)
   const saveTimer = useRef(null)
   const flashTimer = useRef(null)
@@ -828,20 +868,16 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
   // Reset local state when the selected room changes (not on every re-fetch).
   useEffect(() => {
     setForm(initForm(room))
-    setCombos(parseCombos(room?.tableau_combos))
     return () => { clearTimeout(saveTimer.current); clearTimeout(flashTimer.current) }
   }, [room?.id])
 
-  const persist = (nextForm, nextCombos) => {
+  const persist = (nextForm) => {
     if (!room) return
     clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
-      const clean = nextCombos.map(p => [p[0].trim(), p[1].trim()]).filter(p => p[0] || p[1])
       await api.updateRoom(room.id, {
         ...nextForm,
         gem_cost: nextForm.gem_cost !== '' ? Number(nextForm.gem_cost) : null,
-        tableau_combos: JSON.stringify(clean),
-        tableau_combo: clean.flat().filter(Boolean).join(', '),
       })
       setSavedFlash(true)
       clearTimeout(flashTimer.current)
@@ -853,29 +889,12 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
   const set = (k) => (e) => {
     const next = { ...form, [k]: e.target.value }
     setForm(next)
-    persist(next, combos)
+    persist(next)
   }
   const setChess = (v) => {
     const next = { ...form, chess_pieces: v }
     setForm(next)
-    persist(next, combos)
-  }
-
-  const setCombo = (ci, pi) => (e) => {
-    const next = combos.map(pair => [...pair])
-    next[ci][pi] = e.target.value
-    setCombos(next)
-    persist(form, next)
-  }
-  const addCombo = () => {
-    const next = [...combos, ['', '']]
-    setCombos(next)
-  }
-  const removeCombo = (ci) => {
-    const filtered = combos.filter((_, i) => i !== ci)
-    const next = filtered.length ? filtered : [['', '']]
-    setCombos(next)
-    persist(form, next)
+    persist(next)
   }
 
   const fieldStyle = { fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }
@@ -924,25 +943,16 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
         <ChessPieceSelector value={form.chess_pieces} onChange={setChess} />
       </div>
 
-      <div>
-        <label style={fieldStyle}>Tableaux</label>
-        {combos.map((pair, ci) => (
-          <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-            <span style={{ fontSize: 10, color: 'var(--bp-text-muted)', width: 44, flexShrink: 0 }}>Combo {ci + 1}</span>
-            <Input value={pair[0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
-              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
-            <span style={{ color: 'var(--bp-text-muted)', fontSize: 11 }}>/</span>
-            <Input value={pair[1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
-              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
-            <button type="button" onClick={() => removeCombo(ci)} title="Supprimer"
-              style={{ border: 'none', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>−</button>
-          </div>
-        ))}
-        <button type="button" onClick={addCombo}
-          style={{ border: '1px dashed var(--bp-border)', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 12, padding: '4px 10px', borderRadius: 4 }}>
-          + Ajouter une combinaison
-        </button>
-      </div>
+      {selectedCell && (
+        <PositionTableaux
+          key={`${selectedCell.row}-${selectedCell.col}`}
+          row={selectedCell.row}
+          col={selectedCell.col}
+          combos={tableauCombos}
+          canEdit
+          onSave={onSaveTableaux}
+        />
+      )}
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--bp-text)' }}>
         <input
@@ -951,7 +961,7 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
           onChange={(e) => {
             const next = { ...form, power_conduit: e.target.checked ? 1 : 0 }
             setForm(next)
-            persist(next, combos)
+            persist(next)
           }}
           style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--bp-gold)' }}
         />
@@ -985,6 +995,97 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
           Retirer
         </Btn>
       </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Position tableaux: combinaisons de 2 tableaux par position → lettre de différence
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_COMBOS = 2 // 2 lettres max par position
+
+function PositionTableaux({ row, col, combos: initialCombos, canEdit, onSave }) {
+  const [combos, setCombos] = useState(() => parseCombos(initialCombos))
+  const saveTimer = useRef(null)
+
+  useEffect(() => () => clearTimeout(saveTimer.current), [])
+
+  const persist = (next) => {
+    clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(() => {
+      onSave?.(row, col, next.map((p) => [p[0].trim(), p[1].trim()]))
+    }, 600)
+  }
+
+  const setCombo = (ci, pi) => (e) => {
+    const next = combos.map((pair) => [...pair])
+    next[ci][pi] = e.target.value
+    setCombos(next)
+    persist(next)
+  }
+  const addCombo = () => setCombos((prev) => (prev.length >= MAX_COMBOS ? prev : [...prev, ['', '']]))
+  const removeCombo = (ci) => {
+    const filtered = combos.filter((_, i) => i !== ci)
+    const next = filtered.length ? filtered : [['', '']]
+    setCombos(next)
+    persist(next)
+  }
+
+  const fieldStyle = { fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }
+
+  // ── Read-only ──
+  if (!canEdit) {
+    const filled = parseCombos(initialCombos).filter((p) => p[0] || p[1])
+    if (filled.length === 0) return null
+    return (
+      <div>
+        <div style={fieldStyle}>Tableaux (position)</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {filled.map((pair, i) => {
+            const letter = tableauLetter(pair[0], pair[1])
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--bp-text)' }}>
+                <span>{pair.filter(Boolean).join(' / ')}</span>
+                {letter && (
+                  <span style={{ fontWeight: 800, color: 'var(--bp-gold)' }}>→ {letter}</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <label style={fieldStyle}>Tableaux (position) — lettre de différence</label>
+      {combos.map((pair, ci) => {
+        const letter = tableauLetter(pair[0], pair[1])
+        return (
+          <div key={ci} style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+            <Input value={pair[0]} onChange={setCombo(ci, 0)} placeholder="tableau A"
+              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
+            <span style={{ color: 'var(--bp-text-muted)', fontSize: 11 }}>/</span>
+            <Input value={pair[1]} onChange={setCombo(ci, 1)} placeholder="tableau B"
+              style={{ flex: 1, padding: '4px 8px', fontSize: 12 }} />
+            <span title="Lettre trouvée" style={{
+              width: 22, textAlign: 'center', flexShrink: 0,
+              fontWeight: 800, fontSize: 14,
+              color: letter ? 'var(--bp-gold)' : 'var(--bp-border)',
+            }}>{letter || '·'}</span>
+            <button type="button" onClick={() => removeCombo(ci)} title="Supprimer"
+              style={{ border: 'none', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 16, padding: '0 2px' }}>−</button>
+          </div>
+        )
+      })}
+      {combos.length < MAX_COMBOS && (
+        <button type="button" onClick={addCombo}
+          style={{ border: '1px dashed var(--bp-border)', background: 'none', color: 'var(--bp-text-muted)', cursor: 'pointer', fontSize: 12, padding: '4px 10px', borderRadius: 4 }}>
+          + Ajouter une combinaison
+        </button>
+      )}
     </div>
   )
 }

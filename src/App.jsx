@@ -14,6 +14,7 @@ import RelationsGraph from './components/RelationsGraph.jsx'
 import Genealogy from './components/Genealogy.jsx'
 import DateCalc from './components/DateCalc.jsx'
 import CalendarView from './components/CalendarView.jsx'
+import LettersPlan from './components/LettersPlan.jsx'
 
 const NAV_ITEMS = [
   { id: 'day',    label: 'Jour',       icon: 'grid' },
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
 ]
 
 const EXTRA_ITEMS = [
+  { id: 'letters',   label: 'Plan lettres', icon: 'grid' },
   { id: 'calendar',  label: 'Calendrier', icon: 'calendar' },
   { id: 'relations', label: 'Relations', icon: 'people' },
   { id: 'genealogy', label: 'Généalogie', icon: 'crown' },
@@ -268,6 +270,7 @@ function AppContent() {
         {tab === 'codes' && <CodesView />}
         {tab === 'notes' && <NotesView />}
         {tab === 'entities' && <EntitiesView />}
+        {tab === 'letters' && <LettersPlan />}
         {tab === 'calendar' && <CalendarView />}
         {tab === 'relations' && <RelationsGraph />}
         {tab === 'genealogy' && <Genealogy />}
