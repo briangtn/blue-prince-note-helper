@@ -139,6 +139,12 @@ if (!roomCols.includes('gem_cost')) {
   db.exec('ALTER TABLE rooms ADD COLUMN gem_cost TEXT')
 }
 
+// Migration : date de fin pour les événements (permet les durées / la vue timeline)
+const eventCols = db.prepare('PRAGMA table_info(events)').all().map((c) => c.name)
+if (!eventCols.includes('end_date')) {
+  db.exec('ALTER TABLE events ADD COLUMN end_date TEXT')
+}
+
 // Seed predefined room types (schéma wiki : 7 catégories = couleur de bordure du jeu)
 const defaultTypes = [
   ['Blueprints', '#4B7FBF'],

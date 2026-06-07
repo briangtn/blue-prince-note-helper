@@ -9,16 +9,17 @@ router.get('/', (req, res) => {
 
 router.post('/', (req, res) => {
   const info = db
-    .prepare('INSERT INTO events (title, description, date) VALUES (?, ?, ?)')
-    .run(req.body.title ?? null, req.body.description ?? null, req.body.date ?? null)
+    .prepare('INSERT INTO events (title, description, date, end_date) VALUES (?, ?, ?, ?)')
+    .run(req.body.title ?? null, req.body.description ?? null, req.body.date ?? null, req.body.end_date ?? null)
   res.json(db.prepare('SELECT * FROM events WHERE id = ?').get(info.lastInsertRowid))
 })
 
 router.put('/:id', (req, res) => {
-  db.prepare('UPDATE events SET title = ?, description = ?, date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
+  db.prepare('UPDATE events SET title = ?, description = ?, date = ?, end_date = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
     req.body.title ?? null,
     req.body.description ?? null,
     req.body.date ?? null,
+    req.body.end_date ?? null,
     req.params.id
   )
   res.json(db.prepare('SELECT * FROM events WHERE id = ?').get(req.params.id))

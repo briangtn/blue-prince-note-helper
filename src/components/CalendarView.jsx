@@ -18,15 +18,24 @@ function toISO(d) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
 }
 
+// 'YYYY-MM-DD' -> Date UTC
+function fromISO(iso) {
+  if (!iso) return null
+  const d = new Date(iso + 'T00:00:00Z')
+  return isNaN(d.getTime()) ? null : d
+}
+
+
 function EventEditor({ event, onChange, onClose, canEdit }) {
   const [title, setTitle] = useState(event.title || '')
   const [description, setDescription] = useState(event.description || '')
   const [date, setDate] = useState(event.date || '')
+  const [endDate, setEndDate] = useState(event.end_date || '')
 
   const save = useCallback(async () => {
-    await api.updateEvent(event.id, { title, description, date: date || null })
+    await api.updateEvent(event.id, { title, description, date: date || null, end_date: endDate || null })
     onChange()
-  }, [event.id, title, description, date, onChange])
+  }, [event.id, title, description, date, endDate, onChange])
 
   const remove = async () => {
     if (!confirm('Supprimer cet événement ?')) return
@@ -60,7 +69,8 @@ function EventEditor({ event, onChange, onClose, canEdit }) {
           </button>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--bp-text-muted)', minWidth: 40 }}>Début</span>
         <Input type="date" value={date || ''} readOnly={!canEdit}
           onChange={(e) => setDate(e.target.value)} onBlur={canEdit ? save : undefined}
           style={{ maxWidth: 180 }} />
@@ -68,10 +78,114 @@ function EventEditor({ event, onChange, onClose, canEdit }) {
           <span style={{ fontSize: 12, color: 'var(--bp-text-muted)' }}>Jour {dateToDay(date)}</span>
         )}
       </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--bp-text-muted)', minWidth: 40 }}>Fin</span>
+        <Input type="date" value={endDate || ''} readOnly={!canEdit}
+          onChange={(e) => setEndDate(e.target.value)} onBlur={canEdit ? save : undefined}
+          style={{ maxWidth: 180 }} />
+        {dateToDay(endDate) && (
+          <span style={{ fontSize: 12, color: 'var(--bp-text-muted)' }}>Jour {dateToDay(endDate)}</span>
+        )}
+        <span style={{ fontSize: 11, color: 'var(--bp-text-muted)' }}>(optionnel — pour une durée)</span>
+      </div>
       <TextArea value={description} readOnly={!canEdit} rows={3}
         onChange={(e) => setDescription(e.target.value)} onBlur={canEdit ? save : undefined}
         placeholder="Description…" />
       <LinksPanel type="event" id={event.id} />
+    </div>
+  )
+}
+
+// Date courte « 15 nov 1993 »
+function fmtShort(d) {
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()].slice(0, 3)} ${d.getUTCFullYear()}`
+}
+
+const NODE_W = 210      // largeur d'un jalon
+const TOP_H = 64        // hauteur réservée aux dates (au-dessus de la ligne)
+const DOT = 18          // diamètre de la pastille
+const LINE_Y = TOP_H + DOT / 2 // centre vertical des pastilles = position de la ligne
+
+// Frise chronologique : ligne horizontale, pastilles, date au-dessus, événement en dessous
+function TimelineView({ events, onSelect }) {
+  // Événements datés, triés chronologiquement
+  const items = useMemo(() => {
+    return events
+      .filter((e) => e.date)
+      .map((e) => {
+        const start = fromISO(e.date)
+        const end = fromISO(e.end_date)
+        return { ev: e, start, end: end && end < start ? null : end }
+      })
+      .filter((it) => it.start)
+      .sort((a, b) => a.start - b.start || (a.ev.title || '').localeCompare(b.ev.title || ''))
+  }, [events])
+
+  if (!items.length) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--bp-text-muted)' }}>
+        Aucun événement daté à afficher sur la frise.
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ overflowX: 'auto', paddingBottom: 16 }}>
+      <div style={{ position: 'relative', display: 'flex', width: 'max-content', padding: '0 8px' }}>
+        {/* Ligne horizontale reliant la première à la dernière pastille */}
+        <div style={{
+          position: 'absolute', top: LINE_Y - 2, left: 8 + NODE_W / 2, right: 8 + NODE_W / 2,
+          height: 4, background: 'var(--bp-accent)', borderRadius: 2,
+        }} />
+
+        {items.map((it) => {
+          const gameDay = dateToDay(it.ev.date)
+          const endGameDay = it.end ? dateToDay(it.ev.end_date) : null
+          const big = gameDay
+            ? (endGameDay && endGameDay !== gameDay ? `J${gameDay} → J${endGameDay}` : `Jour ${gameDay}`)
+            : String(it.start.getUTCFullYear())
+          const small = it.end
+            ? `${fmtShort(it.start)} → ${fmtShort(it.end)}`
+            : fmtShort(it.start)
+          return (
+            <div key={it.ev.id} style={{
+              width: NODE_W, flexShrink: 0, padding: '0 12px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+            }}>
+              {/* Date (au-dessus de la ligne) */}
+              <div style={{
+                height: TOP_H, display: 'flex', flexDirection: 'column',
+                justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 8, gap: 2,
+              }}>
+                <span style={{ fontFamily: 'var(--font-heading)', fontSize: 18, fontWeight: 700, color: 'var(--bp-accent)' }}>{big}</span>
+                <span style={{ fontSize: 11, color: 'var(--bp-text-muted)' }}>{small}</span>
+              </div>
+
+              {/* Pastille sur la ligne */}
+              <button onClick={() => onSelect(it.ev.id)} title={it.ev.title || 'Sans titre'} style={{
+                width: DOT, height: DOT, borderRadius: '50%', flexShrink: 0,
+                background: 'var(--bp-surface)', border: '4px solid var(--bp-accent)',
+                cursor: 'pointer', padding: 0, position: 'relative', zIndex: 1,
+              }} />
+
+              {/* Événement (en dessous de la ligne) */}
+              <div style={{ marginTop: 12 }}>
+                <button onClick={() => onSelect(it.ev.id)} style={{
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  fontSize: 13, fontWeight: 600, color: 'var(--bp-text)', lineHeight: 1.3,
+                }}>
+                  {it.ev.title || 'Sans titre'}
+                </button>
+                {it.ev.description && (
+                  <div style={{ marginTop: 5, fontSize: 12, color: 'var(--bp-text-muted)', whiteSpace: 'pre-wrap', lineHeight: 1.4 }}>
+                    {it.ev.description}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -82,6 +196,7 @@ export default function CalendarView() {
   const [currentDay] = useCurrentDay()
   const [events, setEvents] = useState([])
   const [selectedId, setSelectedId] = useState(null)
+  const [mode, setMode] = useState('month') // 'month' | 'timeline'
 
   // Mois affiché par défaut : celui de la date du jour de jeu courant
   const initial = useMemo(() => {
@@ -138,20 +253,32 @@ export default function CalendarView() {
   const todayISO = currentDay ? toISO(dayToDate(currentDay)) : null
 
   return (
-    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 28px', overflowY: 'auto', height: '100%' }}>
+    <div style={{ maxWidth: mode === 'timeline' ? 1400 : 1000, margin: '0 auto', padding: '24px 28px', overflowY: 'auto', height: '100%' }}>
       <SectionHead title="Calendrier">
-        <Btn small variant="ghost" onClick={() => shiftMonth(-1)}>
-          <Icons.chevL style={{ width: 14, height: 14 }} />
-        </Btn>
-        <span style={{ minWidth: 150, textAlign: 'center', fontWeight: 600, color: 'var(--bp-text)', textTransform: 'capitalize' }}>
-          {MONTHS[view.m]} {view.y}
-        </span>
-        <Btn small variant="ghost" onClick={() => shiftMonth(1)}>
-          <Icons.chevR style={{ width: 14, height: 14 }} />
-        </Btn>
-        <Btn small variant="default" onClick={goToday}>Aujourd'hui (jeu)</Btn>
+        {mode === 'month' && (
+          <>
+            <Btn small variant="ghost" onClick={() => shiftMonth(-1)}>
+              <Icons.chevL style={{ width: 14, height: 14 }} />
+            </Btn>
+            <span style={{ minWidth: 150, textAlign: 'center', fontWeight: 600, color: 'var(--bp-text)', textTransform: 'capitalize' }}>
+              {MONTHS[view.m]} {view.y}
+            </span>
+            <Btn small variant="ghost" onClick={() => shiftMonth(1)}>
+              <Icons.chevR style={{ width: 14, height: 14 }} />
+            </Btn>
+            <Btn small variant="default" onClick={goToday}>Aujourd'hui (jeu)</Btn>
+          </>
+        )}
+        <div style={{ display: 'inline-flex', gap: 4, marginLeft: 8 }}>
+          <Btn small variant={mode === 'month' ? 'accent' : 'ghost'} onClick={() => setMode('month')}>Mois</Btn>
+          <Btn small variant={mode === 'timeline' ? 'accent' : 'ghost'} onClick={() => setMode('timeline')}>Timeline</Btn>
+        </div>
       </SectionHead>
 
+      {mode === 'timeline' ? (
+        <TimelineView events={events} onSelect={setSelectedId} />
+      ) : (
+      <>
       {/* En-têtes jours */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginBottom: 4 }}>
         {WEEKDAYS.map((w) => (
@@ -202,6 +329,8 @@ export default function CalendarView() {
           )
         })}
       </div>
+      </>
+      )}
 
       {selected && (
         <EventEditor key={selected.id} event={selected} canEdit={canEdit}
