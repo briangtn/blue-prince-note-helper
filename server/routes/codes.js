@@ -16,12 +16,14 @@ router.post('/', (req, res) => {
 })
 
 router.put('/:id', (req, res) => {
+  const existing = db.prepare('SELECT * FROM codes WHERE id = ?').get(req.params.id)
+  if (!existing) return res.status(404).json({ error: 'not found' })
   const { value, context, status, notes } = req.body
   db.prepare('UPDATE codes SET value = ?, context = ?, status = ?, notes = ? WHERE id = ?').run(
-    value,
-    context ?? null,
-    status ?? 'pending',
-    notes ?? null,
+    value ?? existing.value,
+    context ?? existing.context,
+    status ?? existing.status,
+    notes ?? existing.notes,
     req.params.id
   )
   res.json(db.prepare('SELECT * FROM codes WHERE id = ?').get(req.params.id))

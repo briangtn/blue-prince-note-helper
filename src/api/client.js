@@ -56,6 +56,9 @@ export const api = {
   // tableaux par position (row, col)
   listTableaux: () => req('/tableaux'),
   setTableaux: (body) => req('/tableaux', { method: 'PUT', body }),
+  // qualité du sol par position (row, col)
+  listSoil: () => req('/soil'),
+  setSoil: (body) => req('/soil', { method: 'PUT', body }),
   // people
   listPeople: () => req('/people'),
   createPerson: (body) => req('/people', { method: 'POST', body }),

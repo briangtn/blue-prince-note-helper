@@ -38,6 +38,15 @@ const EDIT_FIELDS = [
   ['letters', 'Lettres', '3,7,12'],
 ]
 
+// Qualité du sol par position (identique tous les jours).
+const SOIL_QUALITIES = {
+  sterile: { label: 'Stérile', color: '#9aa0a6' },
+  poor: { label: 'Poor', color: '#d08a4a' },
+  good: { label: 'Good', color: '#7cb342' },
+  rich: { label: 'Rich', color: '#2e7d32' },
+}
+const SOIL_ORDER = ['sterile', 'poor', 'good', 'rich']
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
@@ -54,6 +63,7 @@ export default function DayView() {
   const [types, setTypes] = useState([])
   const [rooms, setRooms] = useState([])
   const [tableaux, setTableaux] = useState([]) // [{row, col, combos}] — global par position
+  const [soil, setSoil] = useState([]) // [{row, col, soil}] — global par position
 
   // Selected cell and side-panel mode
   const [selectedCell, setSelectedCell] = useState(null) // {row, col}
@@ -100,6 +110,7 @@ export default function DayView() {
     api.listRooms().then(setRooms)
   }, [])
   const loadTableaux = useCallback(() => api.listTableaux().then(setTableaux), [])
+  const loadSoil = useCallback(() => api.listSoil().then(setSoil), [])
 
   const loadDay = useCallback((n) => {
     if (n == null) return
@@ -110,10 +121,11 @@ export default function DayView() {
     })
   }, [])
 
-  useEffect(() => { loadDays(); loadCatalog(); loadTableaux() }, [loadDays, loadCatalog, loadTableaux])
+  useEffect(() => { loadDays(); loadCatalog(); loadTableaux(); loadSoil() }, [loadDays, loadCatalog, loadTableaux, loadSoil])
   useEffect(() => { loadDay(current) }, [current, loadDay])
   useWs(() => { loadDays(); loadCatalog(); loadDay(current) }, ['days', 'rooms'])
   useWs(loadTableaux, ['tableaux'])
+  useWs(loadSoil, ['soil'])
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -122,6 +134,8 @@ export default function DayView() {
   const placementAt = (r, c) => stickyAt(r, c) || placements.find((p) => p.row === r && p.col === c)
   // Tableaux par position (global, indépendant du jour et de la pièce).
   const tableauAt = (r, c) => tableaux.find((t) => t.row === r && t.col === c)
+  // Qualité du sol par position (global, indépendant du jour et de la pièce).
+  const soilAt = (r, c) => soil.find((s) => s.row === r && s.col === c)?.soil || null
 
   const switchDay = (n) => {
     const num = Number(n)
@@ -186,6 +200,11 @@ export default function DayView() {
   const handleSaveTableaux = async (row, col, combos) => {
     await api.setTableaux({ row, col, combos })
     loadTableaux()
+  }
+
+  const handleSaveSoil = async (row, col, soilValue) => {
+    await api.setSoil({ row, col, soil: soilValue })
+    loadSoil()
   }
 
   const handleRemovePlacement = async () => {
@@ -277,6 +296,7 @@ export default function DayView() {
     : null
   const selectedIsSticky = selectedCell ? !!stickyAt(selectedCell.row, selectedCell.col) : false
   const selectedTableauCombos = selectedCell ? (tableauAt(selectedCell.row, selectedCell.col)?.combos || null) : null
+  const selectedSoil = selectedCell ? soilAt(selectedCell.row, selectedCell.col) : null
 
   // Rendu d'une cellule (manoir ou Grounds) — même apparence et mêmes interactions partout.
   const renderCell = (r, c) => {
@@ -289,6 +309,8 @@ export default function DayView() {
     const chess = p ? chessSymbol(p.chess_pieces) : null
     const chessName = p ? chessLabel(p.chess_pieces) : null
     const letters = comboLetters(tableauAt(r, c)?.combos)
+    const soilKey = soilAt(r, c)
+    const soilQ = soilKey ? SOIL_QUALITIES[soilKey] : null
 
     return (
       <button
@@ -326,6 +348,18 @@ export default function DayView() {
           fontFamily: 'var(--font-mono)',
           zIndex: 1,
         }}>{label}</span>
+
+        {/* Bottom-right: qualité du sol */}
+        {soilQ && (
+          <span title={`Sol : ${soilQ.label}`} style={{
+            position: 'absolute', bottom: 4, right: 5, zIndex: 2,
+            width: 10, height: 10, borderRadius: '50%',
+            background: soilQ.color,
+            border: '1.5px solid rgba(0,0,0,0.5)',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.6)',
+            cursor: 'help',
+          }} />
+        )}
 
         {/* Bottom-left: conduite énergie */}
         {!!p?.power_conduit && (
@@ -574,6 +608,8 @@ export default function DayView() {
           selectedIsSticky={selectedIsSticky}
           selectedTableauCombos={selectedTableauCombos}
           onSaveTableaux={handleSaveTableaux}
+          selectedSoil={selectedSoil}
+          onSaveSoil={handleSaveSoil}
           rooms={rooms}
           types={types}
           canEdit={canEdit}
@@ -600,6 +636,7 @@ function SidePanel({
   mode, setMode,
   selectedCell, selectedPlacement, selectedRoom, selectedIsSticky,
   selectedTableauCombos, onSaveTableaux,
+  selectedSoil, onSaveSoil,
   rooms, types, canEdit, current,
   overall, onNotesChange,
   onClose, onPlaceRoom, onRemovePlacement, onToggleSticky, onRoomCreated, onRoomUpdated,
@@ -650,6 +687,15 @@ function SidePanel({
             canEdit={canEdit}
             current={current}
           />
+        )}
+        {selectedCell && (mode === 'pick' || mode === 'detail') && (
+          <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--bp-border)' }}>
+            <SoilSelector
+              value={selectedSoil}
+              canEdit={canEdit}
+              onChange={(s) => onSaveSoil(selectedCell.row, selectedCell.col, s)}
+            />
+          </div>
         )}
         {mode === 'pick' && (
           <>
@@ -1036,6 +1082,66 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
           <Icons.trash style={{ width: 12, height: 12 }} />
           Retirer
         </Btn>
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Qualité du sol par position
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SoilSelector({ value, canEdit, onChange }) {
+  const labelStyle = { fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 6 }
+
+  // ── Read-only ──
+  if (!canEdit) {
+    if (!value) return null
+    const q = SOIL_QUALITIES[value]
+    return (
+      <div>
+        <div style={labelStyle}>Qualité du sol</div>
+        <span style={{
+          fontSize: 12, fontWeight: 700, color: q.color,
+          background: q.color + '22', border: `1px solid ${q.color}55`,
+          padding: '3px 10px', borderRadius: 5,
+        }}>{q.label}</span>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={labelStyle}>Qualité du sol</div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        {SOIL_ORDER.map((key) => {
+          const q = SOIL_QUALITIES[key]
+          const active = value === key
+          return (
+            <button
+              key={key}
+              type="button"
+              // Re-cliquer la qualité active l'efface.
+              onClick={() => onChange(active ? '' : key)}
+              title={q.label}
+              style={{
+                flex: 1,
+                padding: '5px 4px',
+                borderRadius: 5,
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                color: active ? q.color : 'var(--bp-text-muted)',
+                background: active ? q.color + '22' : 'transparent',
+                border: `1px solid ${active ? q.color + '88' : 'var(--bp-border)'}`,
+                transition: 'all .15s',
+              }}
+            >
+              {q.label}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

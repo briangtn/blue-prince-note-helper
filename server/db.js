@@ -135,6 +135,15 @@ db.exec(`
     PRIMARY KEY (row, col)
   );
 
+  -- Qualité du sol par POSITION de la grille (identique tous les jours).
+  -- soil ∈ {sterile, poor, good, rich}.
+  CREATE TABLE IF NOT EXISTS position_soil (
+    row INTEGER NOT NULL,
+    col INTEGER NOT NULL,
+    soil TEXT,
+    PRIMARY KEY (row, col)
+  );
+
   -- Liens universels entre n'importe quelles entités
   CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
