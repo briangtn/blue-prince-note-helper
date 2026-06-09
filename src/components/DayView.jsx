@@ -5,7 +5,7 @@ import { useWs } from '../api/useWs.js'
 import { useCurrentDay } from '../api/currentDay.js'
 import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
-import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, chessSymbol, chessLabel, CHESS_SYMBOLS } from '../ui/primitives.jsx'
+import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, ChessPieceFilter, chessMatchesFilter, chessSymbol, chessLabel, CHESS_SYMBOLS } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import { lookupRoom, roomIconUrl } from '../api/roomCatalog.js'
 import { parseCombos, comboLetters, tableauLetter } from '../api/tableaux.js'
@@ -349,8 +349,8 @@ export default function DayView() {
           zIndex: 1,
         }}>{label}</span>
 
-        {/* Bottom-right: qualité du sol */}
-        {soilQ && (
+        {/* Qualité du sol : point si case vide, voile de couleur si une pièce est posée */}
+        {soilQ && !p && (
           <span title={`Sol : ${soilQ.label}`} style={{
             position: 'absolute', bottom: 4, right: 5, zIndex: 2,
             width: 10, height: 10, borderRadius: '50%',
@@ -358,6 +358,13 @@ export default function DayView() {
             border: '1.5px solid rgba(0,0,0,0.5)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.6)',
             cursor: 'help',
+          }} />
+        )}
+        {soilQ && p && (
+          <span style={{
+            position: 'absolute', inset: 0, borderRadius: 6, zIndex: 1,
+            background: soilQ.color, opacity: 0.32,
+            pointerEvents: 'none',
           }} />
         )}
 
@@ -776,13 +783,14 @@ function IdlePanel({ overall, onNotesChange, canEdit, current }) {
 
 function PickPanel({ rooms, types, onPick, onNewRoom }) {
   const [search, setSearch] = useState('')
+  const [chessFilter, setChessFilter] = useState('')
 
-  const filtered = search.trim()
-    ? rooms.filter(r =>
-        r.name.toLowerCase().includes(search.toLowerCase()) ||
-        (r.type || '').toLowerCase().includes(search.toLowerCase())
-      )
-    : rooms
+  const filtered = rooms
+    .filter(r => chessMatchesFilter(r.chess_pieces, chessFilter))
+    .filter(r => !search.trim() ||
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      (r.type || '').toLowerCase().includes(search.toLowerCase())
+    )
 
   // Group by type
   const grouped = {}
@@ -808,6 +816,8 @@ function PickPanel({ rooms, types, onPick, onNewRoom }) {
           style={{ paddingLeft: 30 }}
         />
       </div>
+
+      <ChessPieceFilter value={chessFilter} onChange={setChessFilter} />
 
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {Object.entries(grouped).map(([typeName, typeRooms]) => {

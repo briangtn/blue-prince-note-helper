@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
-import { Input, Select, Btn, Badge, SectionHead, EmptyState, typeColor, chessSymbol, chessLabel } from '../ui/primitives.jsx'
+import { Input, Select, Btn, Badge, SectionHead, EmptyState, typeColor, chessSymbol, chessLabel, ChessPieceFilter, chessMatchesFilter } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import RoomForm from './RoomForm.jsx'
 import LinksPanel from './LinksPanel.jsx'
@@ -129,6 +129,7 @@ export default function RoomsView() {
   const [types, setTypes] = useState([])
   const [rooms, setRooms] = useState([])
   const [filterType, setFilterType] = useState('')
+  const [filterChess, setFilterChess] = useState('')
   const [q, setQ] = useState('')
   const [editing, setEditing] = useState(null)
   const [newType, setNewType] = useState('')
@@ -164,8 +165,11 @@ export default function RoomsView() {
     loadTypes()
   }
 
+  // Filtre par pièce d'échecs (côté client — le serveur ne filtre que type + q)
+  const visibleRooms = rooms.filter((r) => chessMatchesFilter(r.chess_pieces, filterChess))
+
   // Group rooms by type for display
-  const grouped = rooms.reduce((acc, room) => {
+  const grouped = visibleRooms.reduce((acc, room) => {
     const key = room.type || '(Sans type)'
     if (!acc[key]) acc[key] = []
     acc[key].push(room)
@@ -298,6 +302,12 @@ export default function RoomsView() {
               placeholder="Rechercher (nom, notes, objets)…"
               style={{ paddingLeft: 32 }}
             />
+          </div>
+
+          {/* Chess piece filter */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: 11, color: 'var(--bp-text-muted)', flexShrink: 0 }}>Pièce d'échecs</span>
+            <ChessPieceFilter value={filterChess} onChange={setFilterChess} />
           </div>
         </div>
 

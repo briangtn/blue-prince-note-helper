@@ -166,6 +166,53 @@ export function ChessPieceSelector({ value, onChange }) {
   )
 }
 
+// Does a room's chess_pieces value match the selected filter key?
+// filterKey '' = toutes ; 'none' = sans pièce ; sinon une clé de pièce.
+export function chessMatchesFilter(chess_pieces, filterKey) {
+  if (!filterKey) return true
+  if (filterKey === 'none') return !chess_pieces || !chessSymbol(chess_pieces)
+  return chessSymbol(chess_pieces) === CHESS_SYMBOLS[filterKey]
+}
+
+// Barre de filtre par pièce d'échecs : "Toutes" + une pastille par pièce + "Sans".
+// value est une clé de pièce ('' = toutes, 'none' = sans pièce).
+export function ChessPieceFilter({ value, onChange }) {
+  const options = [
+    { key: '', label: 'Toutes' },
+    ...CHESS_PIECES_LIST.filter((p) => p.key).map((p) => ({ key: p.key, symbol: p.symbol })),
+    { key: 'none', label: '∅' },
+  ]
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+      {options.map(({ key, label, symbol }) => {
+        const active = value === key
+        const isText = !symbol
+        return (
+          <button
+            key={key || 'all'}
+            type="button"
+            title={key && key !== 'none' ? CHESS_LABELS[key] : (key === 'none' ? 'Sans pièce' : 'Toutes')}
+            onClick={() => onChange(key)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: isText ? 'auto' : 30, height: 30,
+              padding: isText ? '0 10px' : 0,
+              borderRadius: 6, fontSize: isText ? 12 : 16,
+              fontFamily: 'var(--font-body)', cursor: 'pointer',
+              background: active ? 'var(--bp-accent)22' : 'var(--bp-panel)',
+              border: active ? '2px solid var(--bp-accent)' : '1px solid var(--bp-border)',
+              color: active ? 'var(--bp-accent)' : 'var(--bp-text-dim)',
+              transition: 'all .12s',
+            }}
+          >
+            {label || symbol}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export function SectionHead({ title, children, style: sx }) {
   return <div style={{
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
