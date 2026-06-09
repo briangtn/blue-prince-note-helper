@@ -8,6 +8,7 @@ import RoomsView from './components/RoomsView.jsx'
 import PeopleView from './components/PeopleView.jsx'
 import CodesView from './components/CodesView.jsx'
 import NotesView from './components/NotesView.jsx'
+import DictionaryView from './components/DictionaryView.jsx'
 import EntitiesView from './components/EntitiesView.jsx'
 import Whiteboard from './components/Whiteboard.jsx'
 import RelationsGraph from './components/RelationsGraph.jsx'
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { id: 'people', label: 'Personnes',  icon: 'people' },
   { id: 'codes',  label: 'Codes',      icon: 'key' },
   { id: 'notes',  label: 'Notes',      icon: 'note' },
+  { id: 'dictionary', label: 'Dictionnaire', icon: 'book' },
   { id: 'entities', label: 'Entités',  icon: 'grid' },
 ]
 
@@ -269,6 +271,7 @@ function AppContent() {
         {tab === 'people' && <PeopleView />}
         {tab === 'codes' && <CodesView />}
         {tab === 'notes' && <NotesView />}
+        {tab === 'dictionary' && <DictionaryView />}
         {tab === 'entities' && <EntitiesView />}
         {tab === 'letters' && <LettersPlan />}
         {tab === 'calendar' && <CalendarView />}

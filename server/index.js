@@ -11,6 +11,7 @@ import days from './routes/days.js'
 import tableaux from './routes/tableaux.js'
 import people from './routes/people.js'
 import notes from './routes/notes.js'
+import dictionary from './routes/dictionary.js'
 import entities from './routes/entities.js'
 import events from './routes/events.js'
 import links from './routes/links.js'
@@ -61,6 +62,7 @@ app.use('/api/days', days)
 app.use('/api/tableaux', tableaux)
 app.use('/api/people', people)
 app.use('/api/notes', notes)
+app.use('/api/dictionary', dictionary)
 app.use('/api/entities', entities)
 app.use('/api/events', events)
 app.use('/api/links', links)
