@@ -42,6 +42,9 @@ function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
             {room.chess_pieces && chessSymbol(room.chess_pieces) && (
               <span title={chessLabel(room.chess_pieces)} style={{ fontSize: 14, color: 'var(--bp-text-muted)', cursor: 'help' }}>{chessSymbol(room.chess_pieces)}</span>
             )}
+            {!!room.power_conduit && (
+              <span title="Conduite énergie" style={{ fontSize: 14, color: 'var(--bp-gold)', cursor: 'help' }}>⚡</span>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
             <span style={{ fontSize: 11, color }}>

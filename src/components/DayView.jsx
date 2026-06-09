@@ -327,6 +327,15 @@ export default function DayView() {
           zIndex: 1,
         }}>{label}</span>
 
+        {/* Bottom-left: conduite énergie */}
+        {!!p?.power_conduit && (
+          <span title="Conduite énergie" style={{
+            position: 'absolute', bottom: 3, left: 5,
+            fontSize: 12, zIndex: 2, cursor: 'help',
+            textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+          }}>⚡</span>
+        )}
+
         {/* Top-right: chess piece + pin (épinglé) */}
         {chess && (
           <span title={chessName} style={{

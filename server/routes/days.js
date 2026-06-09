@@ -18,7 +18,7 @@ router.post('/', (req, res) => {
 // ⚠️ À déclarer AVANT la route '/:n' (sinon '/sticky' serait capturé comme un numéro de jour).
 const stickyPlacements = () =>
   db.prepare(
-    `SELECT s.*, r.name AS room_name, r.type AS room_type, r.chess_pieces AS chess_pieces
+    `SELECT s.*, r.name AS room_name, r.type AS room_type, r.chess_pieces AS chess_pieces, r.power_conduit AS power_conduit
      FROM sticky_placements s LEFT JOIN rooms r ON r.id = s.room_id`
   ).all()
 
@@ -44,7 +44,7 @@ router.get('/:n', (req, res) => {
   const day = db.prepare('SELECT * FROM days WHERE day_number = ?').get(n)
   const placements = db
     .prepare(
-      `SELECT p.*, r.name AS room_name, r.type AS room_type, r.chess_pieces AS chess_pieces
+      `SELECT p.*, r.name AS room_name, r.type AS room_type, r.chess_pieces AS chess_pieces, r.power_conduit AS power_conduit
        FROM day_placements p LEFT JOIN rooms r ON r.id = p.room_id
        WHERE p.day_number = ?`
     )
