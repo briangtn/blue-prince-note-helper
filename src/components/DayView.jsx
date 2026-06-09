@@ -326,14 +326,20 @@ export default function DayView() {
           padding: '4px 6px',
           position: 'relative',
           cursor: canEdit ? 'pointer' : 'default',
-          background: p ? (color + '18') : 'transparent',
+          background: p
+            ? (color + '18')
+            : soilQ
+              ? (soilQ.color + '33')
+              : 'transparent',
           border: isSelected
             ? `2px solid ${color || 'var(--bp-accent)'}`
             : isStickyCell
               ? `2px solid var(--bp-gold)`
               : p
                 ? `2px solid ${color + '80'}`
-                : '1.5px dashed var(--bp-border)',
+                : soilQ
+                  ? `1.5px solid ${soilQ.color + '88'}`
+                  : '1.5px dashed var(--bp-border)',
           boxShadow: isSelected
             ? `0 0 0 3px ${(color || 'var(--bp-accent)') + '30'}`
             : 'none',
