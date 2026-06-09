@@ -85,6 +85,10 @@ const RAW = {
   'Hovel': ['Secret rooms', null],
   'Trading Post': ['Secret rooms', null],
   'Tomb': ['Secret rooms', null],
+  // The Outer Room : zone des Grounds (West Path). À l'ouverture, on draft 3 salles
+  // parmi un pool exclusif de 8 (Hovel, Root Cellar, Schoolhouse, Shelter, Shrine,
+  // Tomb, Toolshed, Trading Post) — toutes déjà présentes ci-dessus. Dead-end, sans gemmes.
+  'Outer Room': ['Secret rooms', null],
 
   // --- Blueprints (salles standard, bordure bleue) ---
   'The Foundation': ['Blueprints', null],

@@ -13,9 +13,16 @@ import { parseCombos, comboLetters, tableauLetter } from '../api/tableaux.js'
 const ROWS = 9
 const COLS = 5
 
-// Column letter A-E, row number 1-9
+// Zone des Grounds (hors manoir) : la ligne `ROWS` est en dehors de la grille 9×5,
+// donc ces cellules ne percutent jamais le manoir et ne comptent pas dans le remplissage.
+// L'Outer Room (West Path) est un emplacement fixe où l'on draft une pièce du pool par jour.
+const GROUNDS = [{ row: ROWS, col: 0, label: 'Outer Room', short: 'Outer' }]
+const groundsAt = (r, c) => GROUNDS.find((g) => g.row === r && g.col === c)
+const isManorCell = (p) => p.row < ROWS
+
+// Column letter A-E, row number 1-9 ; les cases des Grounds ont un libellé dédié.
 function cellLabel(r, c) {
-  return String.fromCharCode(65 + c) + (r + 1)
+  return groundsAt(r, c)?.label ?? String.fromCharCode(65 + c) + (r + 1)
 }
 
 
@@ -213,7 +220,7 @@ export default function DayView() {
   // ── Stats ─────────────────────────────────────────────────────────────────
 
   const totalCells = ROWS * COLS
-  const occupied = new Set([...placements, ...sticky].map((p) => `${p.row}-${p.col}`))
+  const occupied = new Set([...placements, ...sticky].filter(isManorCell).map((p) => `${p.row}-${p.col}`))
   const placed = occupied.size
   const free = totalCells - placed
 
@@ -270,6 +277,122 @@ export default function DayView() {
     : null
   const selectedIsSticky = selectedCell ? !!stickyAt(selectedCell.row, selectedCell.col) : false
   const selectedTableauCombos = selectedCell ? (tableauAt(selectedCell.row, selectedCell.col)?.combos || null) : null
+
+  // Rendu d'une cellule (manoir ou Grounds) — même apparence et mêmes interactions partout.
+  const renderCell = (r, c) => {
+    const grounds = groundsAt(r, c)
+    const label = grounds?.short ?? cellLabel(r, c)
+    const p = placementAt(r, c)
+    const isStickyCell = !!stickyAt(r, c)
+    const color = p ? typeColor(p.room_type, types) : null
+    const isSelected = selectedCell?.row === r && selectedCell?.col === c
+    const chess = p ? chessSymbol(p.chess_pieces) : null
+    const chessName = p ? chessLabel(p.chess_pieces) : null
+    const letters = comboLetters(tableauAt(r, c)?.combos)
+
+    return (
+      <button
+        key={`${r}-${c}`}
+        onClick={canEdit ? () => handleCellClick(r, c) : undefined}
+        style={{
+          aspectRatio: '1.2',
+          borderRadius: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '4px 6px',
+          position: 'relative',
+          cursor: canEdit ? 'pointer' : 'default',
+          background: p ? (color + '18') : 'transparent',
+          border: isSelected
+            ? `2px solid ${color || 'var(--bp-accent)'}`
+            : isStickyCell
+              ? `2px solid var(--bp-gold)`
+              : p
+                ? `2px solid ${color + '80'}`
+                : '1.5px dashed var(--bp-border)',
+          boxShadow: isSelected
+            ? `0 0 0 3px ${(color || 'var(--bp-accent)') + '30'}`
+            : 'none',
+          transition: 'all .15s',
+          fontFamily: 'var(--font-body)',
+        }}
+      >
+        {/* Top-left: cell label */}
+        <span style={{
+          position: 'absolute', top: 4, left: 5,
+          fontSize: 9, color: 'var(--bp-text-muted)',
+          fontFamily: 'var(--font-mono)',
+          zIndex: 1,
+        }}>{label}</span>
+
+        {/* Top-right: chess piece + pin (épinglé) */}
+        {chess && (
+          <span title={chessName} style={{
+            position: 'absolute', top: 3, right: isStickyCell ? 22 : 5,
+            fontSize: 11, opacity: 0.75, cursor: 'help', zIndex: 1,
+          }}>{chess}</span>
+        )}
+        {isStickyCell && (
+          <span title="Épinglée (toutes les parties)" style={{
+            position: 'absolute', top: 3, right: 5,
+            fontSize: 11, zIndex: 1,
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+          }}>📌</span>
+        )}
+
+        {/* Lettre(s) trouvée(s) pour cette position : badge en coin si pièce, sinon au centre */}
+        {letters.length > 0 && p && (
+          <span title={`Lettres : ${letters.join(' ')}`} style={{
+            position: 'absolute', top: 2, left: '50%', transform: 'translateX(-50%)', zIndex: 2,
+            fontSize: 11, fontWeight: 800, lineHeight: 1,
+            color: 'var(--bp-gold)',
+            padding: '1px 5px', borderRadius: 4,
+            background: 'rgba(0,0,0,0.7)',
+            textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+            letterSpacing: '.04em',
+          }}>{letters.join(' ')}</span>
+        )}
+
+        {p ? (() => {
+          const icon = roomIconUrl(p.room_name)
+          return (
+            <>
+              {icon && (
+                <img src={icon} alt={p.room_name} style={{
+                  position: 'absolute', inset: 0,
+                  width: '100%', height: '100%', objectFit: 'cover',
+                  borderRadius: 6,
+                }} />
+              )}
+              <span style={{
+                position: 'absolute', left: 0, right: 0, bottom: 0,
+                padding: '3px 4px',
+                fontSize: 10, fontWeight: 700,
+                color: '#fff',
+                textAlign: 'center', lineHeight: 1.2,
+                wordBreak: 'break-word',
+                background: icon ? 'rgba(0,0,0,0.6)' : 'transparent',
+                borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
+                textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+              }}>
+                {p.room_name}
+              </span>
+            </>
+          )
+        })() : letters.length > 0 ? (
+          <span style={{
+            display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center',
+            gap: 4, color: 'var(--bp-gold)', fontWeight: 800, lineHeight: 1,
+            fontSize: letters.length === 1 ? 34 : 18,
+          }}>{letters.join(' ')}</span>
+        ) : (
+          <span style={{ fontSize: 18, color: 'var(--bp-border)', lineHeight: 1 }}>+</span>
+        )}
+      </button>
+    )
+  }
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
@@ -365,120 +488,28 @@ export default function DayView() {
           width: 'fit-content',
         }}>
           {Array.from({ length: ROWS }).map((_, r) =>
-            Array.from({ length: COLS }).map((_, c) => {
-              const label = cellLabel(r, c)
-              const p = placementAt(r, c)
-              const isStickyCell = !!stickyAt(r, c)
-              const color = p ? typeColor(p.room_type, types) : null
-              const isSelected = selectedCell?.row === r && selectedCell?.col === c
-              const chess = p ? chessSymbol(p.chess_pieces) : null
-              const chessName = p ? chessLabel(p.chess_pieces) : null
-              const letters = comboLetters(tableauAt(r, c)?.combos)
-
-              return (
-                <button
-                  key={`${r}-${c}`}
-                  onClick={canEdit ? () => handleCellClick(r, c) : undefined}
-                  style={{
-                    aspectRatio: '1.2',
-                    borderRadius: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '4px 6px',
-                    position: 'relative',
-                    cursor: canEdit ? 'pointer' : 'default',
-                    background: p ? (color + '18') : 'transparent',
-                    border: isSelected
-                      ? `2px solid ${color || 'var(--bp-accent)'}`
-                      : isStickyCell
-                        ? `2px solid var(--bp-gold)`
-                        : p
-                          ? `2px solid ${color + '80'}`
-                          : '1.5px dashed var(--bp-border)',
-                    boxShadow: isSelected
-                      ? `0 0 0 3px ${(color || 'var(--bp-accent)') + '30'}`
-                      : 'none',
-                    transition: 'all .15s',
-                    fontFamily: 'var(--font-body)',
-                  }}
-                >
-                  {/* Top-left: cell label */}
-                  <span style={{
-                    position: 'absolute', top: 4, left: 5,
-                    fontSize: 9, color: 'var(--bp-text-muted)',
-                    fontFamily: 'var(--font-mono)',
-                    zIndex: 1,
-                  }}>{label}</span>
-
-                  {/* Top-right: chess piece + pin (épinglé) */}
-                  {chess && (
-                    <span title={chessName} style={{
-                      position: 'absolute', top: 3, right: isStickyCell ? 22 : 5,
-                      fontSize: 11, opacity: 0.75, cursor: 'help', zIndex: 1,
-                    }}>{chess}</span>
-                  )}
-                  {isStickyCell && (
-                    <span title="Épinglée (toutes les parties)" style={{
-                      position: 'absolute', top: 3, right: 5,
-                      fontSize: 11, zIndex: 1,
-                      textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                    }}>📌</span>
-                  )}
-
-                  {/* Lettre(s) trouvée(s) pour cette position : badge en coin si pièce, sinon au centre */}
-                  {letters.length > 0 && p && (
-                    <span title={`Lettres : ${letters.join(' ')}`} style={{
-                      position: 'absolute', top: 2, left: '50%', transform: 'translateX(-50%)', zIndex: 2,
-                      fontSize: 11, fontWeight: 800, lineHeight: 1,
-                      color: 'var(--bp-gold)',
-                      padding: '1px 5px', borderRadius: 4,
-                      background: 'rgba(0,0,0,0.7)',
-                      textShadow: '0 1px 2px rgba(0,0,0,0.9)',
-                      letterSpacing: '.04em',
-                    }}>{letters.join(' ')}</span>
-                  )}
-
-                  {p ? (() => {
-                    const icon = roomIconUrl(p.room_name)
-                    return (
-                      <>
-                        {icon && (
-                          <img src={icon} alt={p.room_name} style={{
-                            position: 'absolute', inset: 0,
-                            width: '100%', height: '100%', objectFit: 'cover',
-                            borderRadius: 6,
-                          }} />
-                        )}
-                        <span style={{
-                          position: 'absolute', left: 0, right: 0, bottom: 0,
-                          padding: '3px 4px',
-                          fontSize: 10, fontWeight: 700,
-                          color: '#fff',
-                          textAlign: 'center', lineHeight: 1.2,
-                          wordBreak: 'break-word',
-                          background: icon ? 'rgba(0,0,0,0.6)' : 'transparent',
-                          borderBottomLeftRadius: 6, borderBottomRightRadius: 6,
-                          textShadow: '0 1px 2px rgba(0,0,0,0.8)',
-                        }}>
-                          {p.room_name}
-                        </span>
-                      </>
-                    )
-                  })() : letters.length > 0 ? (
-                    <span style={{
-                      display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center',
-                      gap: 4, color: 'var(--bp-gold)', fontWeight: 800, lineHeight: 1,
-                      fontSize: letters.length === 1 ? 34 : 18,
-                    }}>{letters.join(' ')}</span>
-                  ) : (
-                    <span style={{ fontSize: 18, color: 'var(--bp-border)', lineHeight: 1 }}>+</span>
-                  )}
-                </button>
-              )
-            })
+            Array.from({ length: COLS }).map((_, c) => renderCell(r, c))
           )}
+        </div>
+
+        {/* Grounds (hors manoir) : Outer Room — on y draft une pièce du pool par jour */}
+        <div style={{ marginTop: 16 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 600, letterSpacing: '.04em',
+            color: 'var(--bp-text-muted)', marginBottom: 6, textTransform: 'uppercase',
+          }}>🌳 Grounds</div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(100px, 135px)',
+            gap: 7,
+            padding: 16,
+            borderRadius: 12,
+            background: 'var(--bp-surface)',
+            border: '1px solid var(--bp-border)',
+            width: 'fit-content',
+          }}>
+            {GROUNDS.map((g) => renderCell(g.row, g.col))}
+          </div>
         </div>
 
         {/* Legend */}
@@ -565,13 +596,15 @@ function SidePanel({
   onClose, onPlaceRoom, onRemovePlacement, onToggleSticky, onRoomCreated, onRoomUpdated,
 }) {
   const label = selectedCell ? cellLabel(selectedCell.row, selectedCell.col) : null
+  // Les cases des Grounds (Outer Room) ont un libellé parlant : pas de préfixe « Case ».
+  const cellPrefix = selectedCell && groundsAt(selectedCell.row, selectedCell.col) ? '' : 'Case '
 
   const panelTitle = mode === 'idle'
     ? 'Notes du jour'
     : mode === 'pick'
-      ? `Case ${label} — Choisir une pièce`
+      ? `${cellPrefix}${label} — Choisir une pièce`
       : mode === 'detail'
-        ? `Case ${label} — ${selectedPlacement?.room_name || 'Détail'}`
+        ? `${cellPrefix}${label} — ${selectedPlacement?.room_name || 'Détail'}`
         : mode === 'newRoom'
           ? 'Nouvelle pièce'
           : ''
