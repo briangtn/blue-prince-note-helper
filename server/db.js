@@ -178,6 +178,19 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- Photothèque : une ligne par photo importée. Le fichier vit sur disque
+  -- (dossier uploads, à côté de la DB) ; on ne stocke ici que les métadonnées.
+  -- filename = nom du fichier sur disque (unique) ; original_name = nom d'origine.
+  CREATE TABLE IF NOT EXISTS photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    filename TEXT NOT NULL,
+    original_name TEXT,
+    mime TEXT,
+    size INTEGER DEFAULT 0,
+    caption TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   -- Liens universels entre n'importe quelles entités
   CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

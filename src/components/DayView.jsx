@@ -5,6 +5,7 @@ import { useWs } from '../api/useWs.js'
 import { useCurrentDay } from '../api/currentDay.js'
 import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 import RunItemsPanel from './RunItemsPanel.jsx'
 import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, ChessPieceFilter, chessMatchesFilter, chessSymbol, chessLabel, CHESS_SYMBOLS } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
@@ -809,6 +810,7 @@ function IdlePanel({ overall, onNotesChange, canEdit, current }) {
         style={{ resize: 'vertical' }}
       />
       <LinksPanel type="day" id={current} title="Liens du jour" />
+      <PhotosPanel type="day" id={current} />
     </div>
   )
 }
@@ -968,6 +970,7 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
           </div>
         )}
         {room && <LinksPanel type="room" id={room.id} />}
+        {room && <PhotosPanel type="room" id={room.id} />}
       </div>
     )
   }
@@ -1109,6 +1112,7 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
 
       {/* Links */}
       {room && <LinksPanel type="room" id={room.id} />}
+        {room && <PhotosPanel type="room" id={room.id} />}
 
       {/* Actions */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

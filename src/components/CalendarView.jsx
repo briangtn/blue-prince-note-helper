@@ -8,6 +8,7 @@ import { meta } from '../api/entities.js'
 import { Input, TextArea, Btn, SectionHead } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
 const WEEKDAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
@@ -92,6 +93,7 @@ function EventEditor({ event, onChange, onClose, canEdit }) {
         onChange={(e) => setDescription(e.target.value)} onBlur={canEdit ? save : undefined}
         placeholder="Description…" />
       <LinksPanel type="event" id={event.id} />
+      <PhotosPanel type="event" id={event.id} />
     </div>
   )
 }

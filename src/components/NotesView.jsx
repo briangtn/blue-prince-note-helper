@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext.jsx'
 import { Input, TextArea, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 
 function NoteCard({ note, onChange, canEdit }) {
   const [title, setTitle] = useState(note.title || '')
@@ -90,6 +91,7 @@ function NoteCard({ note, onChange, canEdit }) {
 
       {/* Links */}
       <LinksPanel type="note" id={note.id} />
+      <PhotosPanel type="note" id={note.id} />
     </div>
   )
 }

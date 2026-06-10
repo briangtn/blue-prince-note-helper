@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
-import { ENTITY_TYPES, meta } from '../api/entities.js'
+import { ENTITY_TYPES, CREATABLE_TYPES, meta } from '../api/entities.js'
 import { Input, Select, Btn } from '../ui/primitives.jsx'
 
 export default function LinksPanel({ type, id }) {
@@ -97,7 +97,7 @@ export default function LinksPanel({ type, id }) {
             <div style={{ display: 'flex', gap: 4 }}>
               <Select value={newType} onChange={e => setNewType(e.target.value)}
                 style={{ width: 100, padding: '4px 8px', fontSize: 11 }}>
-                {ENTITY_TYPES.map(t => <option key={t} value={t}>{meta(t).label}</option>)}
+                {CREATABLE_TYPES.map(t => <option key={t} value={t}>{meta(t).label}</option>)}
               </Select>
               <Input value={newLabel} onChange={e => setNewLabel(e.target.value)}
                 placeholder={newType === 'day' ? 'n° du jour' : 'nom / valeur'}

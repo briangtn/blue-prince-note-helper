@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext.jsx'
 import { Input, TextArea, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 
 function EntityCard({ entity, onChange, canEdit }) {
   const [title, setTitle] = useState(entity.title || '')
@@ -88,6 +89,7 @@ function EntityCard({ entity, onChange, canEdit }) {
       />
 
       <LinksPanel type="entity" id={entity.id} />
+      <PhotosPanel type="entity" id={entity.id} />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Input, Select, Btn, Badge, SectionHead, EmptyState, typeColor, chessSym
 import { Icons } from '../ui/Icons.jsx'
 import RoomForm from './RoomForm.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 
 const DETAIL_FIELDS = [
   ['position', 'Position'],
@@ -102,6 +103,7 @@ function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
 
           {/* Links panel */}
           <LinksPanel type="room" id={room.id} />
+          <PhotosPanel type="room" id={room.id} />
 
           {/* Edit / Delete */}
           {canEdit && (

@@ -33,6 +33,10 @@ spec:
               value: "3001"
             - name: DB_PATH
               value: /data/blueprince.db
+            - name: UPLOADS_DIR
+              value: /data/uploads
+            - name: STORAGE_LIMIT_BYTES
+              value: {{ .Values.storage.limitBytes | quote }}
             - name: AUTH_RO_USER
               value: {{ .Values.auth.roUser | quote }}
             - name: AUTH_RW_USER

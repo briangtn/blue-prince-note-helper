@@ -24,6 +24,8 @@ function allEntities() {
     out.push({ type: 'item', id: it.id, label: `🎒 ${it.name}` })
   for (const cr of db.prepare('SELECT id, name FROM crafts').all())
     out.push({ type: 'craft', id: cr.id, label: `⚒️ ${cr.name}` })
+  for (const ph of db.prepare('SELECT id, caption, original_name FROM photos').all())
+    out.push({ type: 'photo', id: ph.id, label: `📷 ${ph.caption || ph.original_name || `Photo #${ph.id}`}` })
   return out
 }
 

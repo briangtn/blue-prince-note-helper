@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext.jsx'
 import { Input, Btn, SectionHead, EmptyState, CODE_STATUSES } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 
 const STATUS_ORDER = ['confirmed', 'pending', 'tried', 'rejected']
 const STATUS_CYCLE = { pending: 'tried', tried: 'confirmed', confirmed: 'rejected', rejected: 'pending' }
@@ -178,6 +179,7 @@ export default function CodesView() {
 
                 {/* Links */}
                 <LinksPanel type="code" id={c.id} />
+                <PhotosPanel type="code" id={c.id} />
               </div>
             )
           })}

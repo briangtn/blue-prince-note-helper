@@ -13,6 +13,7 @@ import CraftsView from './components/CraftsView.jsx'
 import NotesView from './components/NotesView.jsx'
 import DictionaryView from './components/DictionaryView.jsx'
 import EntitiesView from './components/EntitiesView.jsx'
+import PhotosView from './components/PhotosView.jsx'
 import Whiteboard from './components/Whiteboard.jsx'
 import RelationsGraph from './components/RelationsGraph.jsx'
 import Genealogy from './components/Genealogy.jsx'
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { id: 'notes',  path: '/notes',  label: 'Notes',      icon: 'note' },
   { id: 'dictionary', path: '/dictionary', label: 'Dictionnaire', icon: 'book' },
   { id: 'entities', path: '/entities', label: 'Entités',  icon: 'grid' },
+  { id: 'photos', path: '/photos', label: 'Photothèque', icon: 'photo' },
 ]
 
 const EXTRA_ITEMS = [
@@ -281,6 +283,7 @@ function AppContent() {
           <Route path="/notes" element={<NotesView />} />
           <Route path="/dictionary" element={<DictionaryView />} />
           <Route path="/entities" element={<EntitiesView />} />
+          <Route path="/photos" element={<PhotosView />} />
           <Route path="/letters" element={<LettersPlan />} />
           <Route path="/calendar" element={<CalendarView />} />
           <Route path="/relations" element={<RelationsGraph />} />

@@ -29,7 +29,13 @@ persistence:
   storageClass: ""
   accessModes:
     - ReadWriteOnce
-  size: 1Gi
+  # Volume partagé par la DB SQLite et la photothèque (dossier uploads).
+  size: 100Gi
+
+# Garde-fou applicatif : refuse les imports au-delà de cette taille cumulée de
+# photos (octets). Aligné par défaut sur le volume (100 Go).
+storage:
+  limitBytes: 107374182400
 
 auth:
   roUser: ""

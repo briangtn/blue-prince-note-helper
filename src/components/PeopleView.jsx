@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext.jsx'
 import { Input, TextArea, Select, Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import PhotosPanel from './PhotosPanel.jsx'
 
 const STATUS_COLORS = {
   Actif:      '#5BAD6E',
@@ -240,6 +241,7 @@ export default function PeopleView() {
 
               {/* Links */}
               <LinksPanel type="person" id={p.id} />
+              <PhotosPanel type="person" id={p.id} />
             </div>
           ))}
         </div>

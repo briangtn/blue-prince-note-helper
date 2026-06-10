@@ -103,6 +103,24 @@ export const api = {
   createCraft: (body) => req('/crafts', { method: 'POST', body }),
   updateCraft: (id, body) => req(`/crafts/${id}`, { method: 'PUT', body }),
   deleteCraft: (id) => req(`/crafts/${id}`, { method: 'DELETE' }),
+  // photos (photothèque)
+  listPhotos: () => req('/photos'),
+  photosFor: (type, id) => req(`/photos?entity_type=${type}&entity_id=${id}`),
+  photoUsage: () => req('/photos/usage'),
+  uploadPhoto: async (file, caption) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (caption) form.append('caption', caption)
+    const res = await fetch(base + '/photos', { method: 'POST', headers: authHeaders(), body: form })
+    if (res.status === 401) {
+      localStorage.removeItem('bp_user'); localStorage.removeItem('bp_pass')
+      window.location.reload(); throw new Error('Authentication required')
+    }
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+  },
+  updatePhoto: (id, body) => req(`/photos/${id}`, { method: 'PUT', body }),
+  deletePhoto: (id) => req(`/photos/${id}`, { method: 'DELETE' }),
   // links
   listEntities: () => req('/links/entities'),
   linksFor: (type, id) => req(`/links?type=${type}&id=${id}`),

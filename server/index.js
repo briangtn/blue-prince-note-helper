@@ -19,6 +19,7 @@ import items from './routes/items.js'
 import runItems from './routes/runItems.js'
 import crafts from './routes/crafts.js'
 import links from './routes/links.js'
+import photos, { uploadsDir } from './routes/photos.js'
 import auth from './auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -48,6 +49,10 @@ function broadcast(channel) {
 }
 
 app.get('/healthz', (_req, res) => res.json({ status: 'ok' }))
+
+// Fichiers photos servis en statique (hors /api donc sans auth) : les balises
+// <img> ne peuvent pas porter l'en-tête Basic. Les noms de fichiers sont des UUID.
+app.use('/uploads', express.static(uploadsDir))
 
 app.use('/api', auth)
 
@@ -84,6 +89,7 @@ app.use('/api/items', items)
 app.use('/api/run-items', runItems)
 app.use('/api/crafts', crafts)
 app.use('/api/links', links)
+app.use('/api/photos', photos)
 
 const distPath = join(__dirname, '..', 'dist')
 app.use(express.static(distPath))
