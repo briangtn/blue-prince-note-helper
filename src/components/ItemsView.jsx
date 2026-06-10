@@ -138,8 +138,8 @@ export default function ItemsView() {
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 28px', height: '100%', overflow: 'auto' }}>
-      <SectionHead title="Items découverts">
-        <Badge style={{ fontSize: 11 }}>{items.length} types · {totalQty} au total</Badge>
+      <SectionHead title="Inventaire — items connus">
+        <Badge style={{ fontSize: 11 }}>{items.length} connus · {totalQty} au total</Badge>
       </SectionHead>
 
       {canEdit && (

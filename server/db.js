@@ -156,6 +156,16 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- Items trouvés pendant une run (un jour donné). Indépendant de l'inventaire
+  -- permanent : on peut retrouver le même item lors de plusieurs runs.
+  CREATE TABLE IF NOT EXISTS run_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    day_number INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   -- Crafts (recettes) découverts. ingredients = JSON [{name, qty}, …].
   -- result_qty = nombre d'items produits par le craft.
   CREATE TABLE IF NOT EXISTS crafts (

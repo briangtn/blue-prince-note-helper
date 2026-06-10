@@ -3,63 +3,12 @@ import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
 import { useCurrentDay } from '../api/currentDay.js'
-import { CRAFT_CATALOG } from '../api/craftCatalog.js'
+import { CRAFT_CATALOG, lookupCraft } from '../api/craftCatalog.js'
 import { suggestCrafts, buildInventory, evaluateCraft } from '../api/craftLogic.js'
-import { Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
+import { Input, Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import { ItemThumb } from './ItemsView.jsx'
-
-// Flèche entre ingrédients et résultat.
-function Arrow() {
-  return <span style={{ color: 'var(--bp-text-muted)', fontSize: 18, padding: '0 2px' }}>→</span>
-}
-
-// Bloc « ingrédient » : vignette + nom + (manquant ?).
-function Ingredient({ ing }) {
-  const missing = ing.ok === false
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px 3px 4px',
-      borderRadius: 8, background: missing ? '#C8545418' : 'var(--bp-panel)',
-      border: `1px solid ${missing ? '#C8545455' : 'var(--bp-border)'}`,
-      opacity: missing ? 1 : 1,
-    }} title={missing ? 'Item manquant' : `Tu possèdes ${ing.have}`}>
-      <ItemThumb name={ing.name} size={28} />
-      <span style={{ fontSize: 12, color: missing ? '#E87070' : 'var(--bp-text)', whiteSpace: 'nowrap' }}>
-        {ing.qty > 1 ? `${ing.qty}× ` : ''}{ing.name}
-      </span>
-    </div>
-  )
-}
-
-// Carte d'une recette révélée.
-function CraftCard({ craft, action, missingName }) {
-  return (
-    <div style={{
-      background: 'var(--bp-surface)', borderRadius: 10, border: '1px solid var(--bp-border)',
-      padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        {(craft.ingredients || craft.inputs).map((ing, i) => (
-          <Ingredient key={i} ing={ing.ok === undefined ? { ...ing, ok: undefined } : ing} />
-        ))}
-        <Arrow />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 10px 3px 4px',
-          borderRadius: 8, background: 'var(--bp-accent)18', border: '1px solid var(--bp-accent)55' }}>
-          <ItemThumb name={craft.result} size={32} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--bp-text)' }}>{craft.result}</span>
-        </div>
-      </div>
-      {craft.effect && <div style={{ fontSize: 12, color: 'var(--bp-text-dim)' }}>{craft.effect}</div>}
-      {missingName && (
-        <div style={{ fontSize: 12, color: '#E8913A' }}>
-          ⚠️ Il te manque <strong>{missingName}</strong> pour réaliser ce craft.
-        </div>
-      )}
-      {action}
-    </div>
-  )
-}
+import CraftCard from './CraftCard.jsx'
 
 export default function CraftsView() {
   const { role } = useAuth()
@@ -67,6 +16,7 @@ export default function CraftsView() {
   const [items, setItems] = useState([])
   const [discovered, setDiscovered] = useState([])
   const [currentDay] = useCurrentDay()
+  const [name, setName] = useState('')
   const [selected, setSelected] = useState(() => new Set())
   const [benchOpen, setBenchOpen] = useState(false)
 
@@ -77,20 +27,32 @@ export default function CraftsView() {
   useEffect(() => { load() }, [load])
   useWs(load, ['items', 'crafts'])
 
-  const { craftable, missingOne } = useMemo(() => suggestCrafts(items), [items])
-  const discoveredNames = useMemo(() => new Set(discovered.map((c) => c.name)), [discovered])
+  const discoveredNames = useMemo(() => discovered.map((c) => c.name), [discovered])
+  const discoveredSet = useMemo(() => new Set(discoveredNames.map((n) => n.toLowerCase())), [discoveredNames])
+  // Suggestions uniquement parmi les crafts DÉJÀ découverts (jamais de spoil).
+  const { craftable, missingOne } = useMemo(
+    () => suggestCrafts(items, discoveredNames),
+    [items, discoveredNames]
+  )
 
-  // Débloque un craft : enregistre la recette découverte + ajoute le résultat à l'inventaire.
-  const unlock = async (craft) => {
-    if (!discoveredNames.has(craft.result)) {
+  // Découvre un craft en tapant son nom exact (le serveur enregistre aussi le résultat comme item connu).
+  const matched = lookupCraft(name)
+  const discover = async (e) => {
+    e.preventDefault()
+    const craft = lookupCraft(name)
+    if (!craft) return
+    if (!discoveredSet.has(craft.result.toLowerCase())) {
       await api.createCraft({ name: craft.result, ingredients: craft.inputs, result_qty: 1, notes: craft.effect || null })
     }
-    const existing = items.find((i) => i.name.toLowerCase() === craft.result.toLowerCase())
-    if (existing) {
-      await api.updateItem(existing.id, { ...existing, quantity: (existing.quantity || 0) + 1 })
-    } else {
-      await api.createItem({ name: craft.result, quantity: 1, day_found: currentDay ?? null })
-    }
+    setName('')
+    load()
+  }
+
+  // Crafter : ajoute le résultat à l'inventaire permanent.
+  const craft = async (c) => {
+    const existing = items.find((i) => i.name.toLowerCase() === c.result.toLowerCase())
+    if (existing) await api.updateItem(existing.id, { ...existing, quantity: (existing.quantity || 0) + 1 })
+    else await api.createItem({ name: c.result, quantity: 1, day_found: currentDay ?? null })
     load()
   }
 
@@ -100,48 +62,65 @@ export default function CraftsView() {
     load()
   }
 
-  // --- Établi : recettes révélées par la sélection d'items ---
-  const toggle = (name) => setSelected((prev) => {
+  // --- Établi : recettes (découvertes) révélées par la sélection d'items ---
+  const toggle = (n) => setSelected((prev) => {
     const next = new Set(prev)
-    next.has(name) ? next.delete(name) : next.add(name)
+    next.has(n) ? next.delete(n) : next.add(n)
     return next
   })
   const benchInv = useMemo(() => buildInventory(items.filter((i) => selected.has(i.name))), [items, selected])
   const benchMatches = useMemo(() => {
     if (selected.size === 0) return []
     return CRAFT_CATALOG
+      .filter((c) => discoveredSet.has(c.result.toLowerCase()))
       .map((c) => evaluateCraft(c, benchInv))
       .filter((c) => c.status === 'craftable')
-  }, [benchInv, selected])
+  }, [benchInv, selected, discoveredSet])
 
   return (
     <div style={{ maxWidth: 920, margin: '0 auto', padding: '24px 28px', height: '100%', overflow: 'auto' }}>
       <SectionHead title="Crafts" />
 
-      {/* Réalisables maintenant */}
-      <Section
-        title="Réalisables maintenant"
-        count={craftable.length}
-        color="#5BAD6E"
-        empty="Aucun craft réalisable avec ton inventaire actuel."
-      >
+      {/* Découvrir un craft par son nom */}
+      {canEdit && (
+        <div style={{ marginBottom: 24 }}>
+          <form onSubmit={discover} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            <ItemThumb name={matched?.result} size={40} />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Nom exact d'un craft à découvrir…"
+              style={{ flex: 1, minWidth: 240 }}
+            />
+            <Btn type="submit" variant="accent" disabled={!matched} style={{ flexShrink: 0 }}>
+              <Icons.craft style={{ width: 14, height: 14 }} /> Découvrir
+            </Btn>
+          </form>
+          <div style={{ fontSize: 11, color: matched ? '#5BAD6E' : 'var(--bp-text-muted)', marginTop: 6 }}>
+            {name.trim()
+              ? (matched
+                  ? (discoveredSet.has(matched.result.toLowerCase()) ? `✓ ${matched.result} déjà découvert` : `✓ ${matched.result} reconnu`)
+                  : 'Craft inconnu (tape le nom exact du résultat)')
+              : "Tape le nom d'un craft pour l'ajouter à tes recettes découvertes. Seuls les crafts découverts sont suggérés."}
+          </div>
+        </div>
+      )}
+
+      {/* Réalisables maintenant (parmi les découverts) */}
+      <Section title="Réalisables maintenant" count={craftable.length} color="#5BAD6E"
+        empty="Aucun craft découvert réalisable avec ton inventaire.">
         {craftable.map((c) => (
           <CraftCard key={c.result} craft={c} action={canEdit && (
-            <Btn variant="accent" small onClick={() => unlock(c)} style={{ alignSelf: 'flex-start' }}>
-              <Icons.craft style={{ width: 14, height: 14 }} />
-              {discoveredNames.has(c.result) ? 'Crafter à nouveau' : 'Débloquer le craft'}
+            <Btn variant="accent" small onClick={() => craft(c)} style={{ alignSelf: 'flex-start' }}>
+              <Icons.craft style={{ width: 14, height: 14 }} /> Crafter
             </Btn>
           )} />
         ))}
       </Section>
 
-      {/* À un item près */}
-      <Section
-        title="À un item près"
-        count={missingOne.length}
-        color="#E8913A"
-        empty="Rien à un seul item près pour le moment."
-      >
+      {/* À un item près (parmi les découverts) */}
+      <Section title="À un item près" count={missingOne.length} color="#E8913A"
+        empty="Rien à un seul item près parmi tes crafts découverts.">
         {missingOne.map((c) => (
           <CraftCard key={c.result} craft={c} missingName={c.missing[0]?.name} />
         ))}
@@ -160,7 +139,7 @@ export default function CraftsView() {
         {benchOpen && (
           <div style={{ background: 'var(--bp-surface)', borderRadius: 10, border: '1px solid var(--bp-border)', padding: 14 }}>
             <div style={{ fontSize: 12, color: 'var(--bp-text-muted)', marginBottom: 10 }}>
-              Sélectionne des items de ton inventaire ; les recettes correspondantes apparaissent automatiquement.
+              Sélectionne des items ; les recettes <strong>découvertes</strong> correspondantes apparaissent.
             </div>
             {items.length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--bp-text-muted)' }}>Aucun item découvert.</div>
@@ -176,8 +155,7 @@ export default function CraftsView() {
                       border: on ? '1px solid var(--bp-accent)' : '1px solid var(--bp-border)',
                       color: on ? 'var(--bp-accent)' : 'var(--bp-text-dim)',
                     }}>
-                      <ItemThumb name={it.name} size={24} />
-                      {it.name}
+                      <ItemThumb name={it.name} size={24} />{it.name}
                     </button>
                   )
                 })}
@@ -187,8 +165,8 @@ export default function CraftsView() {
               <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {benchMatches.map((c) => (
                   <CraftCard key={c.result} craft={c} action={canEdit && (
-                    <Btn variant="accent" small onClick={() => unlock(c)} style={{ alignSelf: 'flex-start' }}>
-                      <Icons.craft style={{ width: 14, height: 14 }} /> Débloquer le craft
+                    <Btn variant="accent" small onClick={() => craft(c)} style={{ alignSelf: 'flex-start' }}>
+                      <Icons.craft style={{ width: 14, height: 14 }} /> Crafter
                     </Btn>
                   )} />
                 ))}
@@ -196,7 +174,7 @@ export default function CraftsView() {
             )}
             {selected.size > 0 && benchMatches.length === 0 && (
               <div style={{ marginTop: 12, fontSize: 12, color: 'var(--bp-text-muted)' }}>
-                Aucune recette connue pour cette combinaison.
+                Aucune recette découverte ne correspond à cette combinaison.
               </div>
             )}
           </div>
@@ -204,12 +182,8 @@ export default function CraftsView() {
       </div>
 
       {/* Crafts découverts */}
-      <Section
-        title="Crafts découverts"
-        count={discovered.length}
-        color="#9B72CF"
-        empty="Aucun craft débloqué pour l'instant."
-      >
+      <Section title="Crafts découverts" count={discovered.length} color="#9B72CF"
+        empty="Aucun craft découvert. Tape le nom d'un craft ci-dessus pour commencer.">
         {discovered.map((c) => (
           <CraftCard
             key={c.id}

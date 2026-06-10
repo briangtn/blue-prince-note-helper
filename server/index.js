@@ -16,6 +16,7 @@ import dictionary from './routes/dictionary.js'
 import entities from './routes/entities.js'
 import events from './routes/events.js'
 import items from './routes/items.js'
+import runItems from './routes/runItems.js'
 import crafts from './routes/crafts.js'
 import links from './routes/links.js'
 import auth from './auth.js'
@@ -80,6 +81,7 @@ app.use('/api/dictionary', dictionary)
 app.use('/api/entities', entities)
 app.use('/api/events', events)
 app.use('/api/items', items)
+app.use('/api/run-items', runItems)
 app.use('/api/crafts', crafts)
 app.use('/api/links', links)
 

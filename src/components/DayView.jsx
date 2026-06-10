@@ -5,6 +5,7 @@ import { useWs } from '../api/useWs.js'
 import { useCurrentDay } from '../api/currentDay.js'
 import { useAuth } from '../AuthContext.jsx'
 import LinksPanel from './LinksPanel.jsx'
+import RunItemsPanel from './RunItemsPanel.jsx'
 import { Input, TextArea, Select, Btn, Badge, typeColor, ChessPieceSelector, ChessPieceFilter, chessMatchesFilter, chessSymbol, chessLabel, CHESS_SYMBOLS } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import { lookupRoom, roomIconUrl } from '../api/roomCatalog.js'
@@ -68,6 +69,7 @@ export default function DayView() {
   // Selected cell and side-panel mode
   const [selectedCell, setSelectedCell] = useState(null) // {row, col}
   const [panelMode, setPanelMode] = useState('idle') // 'idle' | 'pick' | 'detail' | 'newRoom'
+  const [panelTab, setPanelTab] = useState('cell') // 'cell' (grille) | 'run' (items & crafts du run)
 
   const notesTimer = useRef(null)
 
@@ -174,6 +176,7 @@ export default function DayView() {
   const handleCellClick = (r, c) => {
     if (!canEdit) return
     const existing = placementAt(r, c)
+    setPanelTab('cell')
     setSelectedCell({ row: r, col: c })
     if (existing) {
       setPanelMode('detail')
@@ -612,6 +615,32 @@ export default function DayView() {
         background: 'var(--bp-surface)',
         overflow: 'hidden',
       }}>
+        {/* Onglets du panneau : Grille (cellule sélectionnée) / Items & crafts du run */}
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--bp-border)', flexShrink: 0 }}>
+          {[
+            { id: 'cell', label: 'Grille', icon: 'grid' },
+            { id: 'run', label: 'Items & crafts', icon: 'box' },
+          ].map((t) => {
+            const active = panelTab === t.id
+            const IconComp = Icons[t.icon]
+            return (
+              <button key={t.id} onClick={() => setPanelTab(t.id)} style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                padding: '10px 8px', background: active ? 'var(--bp-panel)' : 'transparent',
+                border: 'none', borderBottom: active ? '2px solid var(--bp-accent)' : '2px solid transparent',
+                cursor: 'pointer', color: active ? 'var(--bp-text)' : 'var(--bp-text-dim)',
+                fontSize: 12, fontWeight: active ? 600 : 400, fontFamily: 'var(--font-body)',
+              }}>
+                <IconComp style={{ width: 15, height: 15 }} />
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {panelTab === 'run' ? (
+          <RunItemsPanel day={current} canEdit={canEdit} />
+        ) : (
         <SidePanel
           mode={panelMode}
           setMode={setPanelMode}
@@ -636,6 +665,7 @@ export default function DayView() {
           onRoomCreated={() => { loadCatalog(); loadDay(current) }}
           onRoomUpdated={() => { loadCatalog(); loadDay(current) }}
         />
+        )}
       </div>
     </div>
   )

@@ -55,3 +55,11 @@ export const CRAFT_CATALOG = [
 
 // Index par nom de résultat.
 export const CRAFT_BY_RESULT = Object.fromEntries(CRAFT_CATALOG.map((c) => [c.result, c]))
+
+// Recherche une recette par nom de résultat (exact, insensible à la casse / espaces).
+// Sert à découvrir un craft en tapant son nom — sans jamais lister le catalogue (anti-spoil).
+export function lookupCraft(name) {
+  if (!name) return null
+  const key = name.trim().toLowerCase()
+  return CRAFT_CATALOG.find((c) => c.result.toLowerCase() === key) || null
+}

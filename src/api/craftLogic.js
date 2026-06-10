@@ -34,13 +34,18 @@ export function evaluateCraft(craft, inv) {
   return { ...craft, ingredients, missing, status }
 }
 
-// Renvoie { craftable:[], missingOne:[] } — uniquement les recettes révélables.
-// `items` = inventaire (table items). Les recettes verrouillées sont exclues (anti-spoil).
-export function suggestCrafts(items, catalog = CRAFT_CATALOG) {
+// Renvoie { craftable:[], missingOne:[] }.
+// `items`     = inventaire (table items ou run_items).
+// `discovered`= liste de noms de crafts DÉJÀ découverts. On ne suggère JAMAIS une
+//   recette non découverte (anti-spoil fort). Si null, tout le catalogue est évalué.
+// De plus, les recettes verrouillées (2+ items manquants) restent exclues.
+export function suggestCrafts(items, discovered = null, catalog = CRAFT_CATALOG) {
   const inv = buildInventory(items)
+  const allowed = discovered ? new Set([...discovered].map(norm)) : null
+  const pool = allowed ? catalog.filter((c) => allowed.has(norm(c.result))) : catalog
   const craftable = []
   const missingOne = []
-  for (const craft of catalog) {
+  for (const craft of pool) {
     const ev = evaluateCraft(craft, inv)
     if (ev.status === 'craftable') craftable.push(ev)
     else if (ev.status === 'missing-one') missingOne.push(ev)

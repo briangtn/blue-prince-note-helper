@@ -93,6 +93,11 @@ export const api = {
   createItem: (body) => req('/items', { method: 'POST', body }),
   updateItem: (id, body) => req(`/items/${id}`, { method: 'PUT', body }),
   deleteItem: (id) => req(`/items/${id}`, { method: 'DELETE' }),
+  // run-items (items trouvés pendant une run, par jour)
+  listRunItems: (day) => req(`/run-items${day != null ? `?day=${day}` : ''}`),
+  addRunItem: (body) => req('/run-items', { method: 'POST', body }),
+  updateRunItem: (id, body) => req(`/run-items/${id}`, { method: 'PUT', body }),
+  deleteRunItem: (id) => req(`/run-items/${id}`, { method: 'DELETE' }),
   // crafts (recettes découvertes)
   listCrafts: () => req('/crafts'),
   createCraft: (body) => req('/crafts', { method: 'POST', body }),

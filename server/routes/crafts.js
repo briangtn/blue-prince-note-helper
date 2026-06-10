@@ -38,6 +38,12 @@ router.post('/', (req, res) => {
   const info = db
     .prepare('INSERT INTO crafts (name, ingredients, result_qty, notes) VALUES (?, ?, ?, ?)')
     .run(name ?? null, JSON.stringify(normalizeIngredients(ingredients)), result_qty ?? 1, notes ?? null)
+  // Tout craft découvert enregistre aussi son résultat comme item connu (s'il ne l'est pas déjà).
+  const resultName = (name ?? '').trim()
+  if (resultName) {
+    const exists = db.prepare('SELECT id FROM items WHERE name = ? COLLATE NOCASE').get(resultName)
+    if (!exists) db.prepare('INSERT INTO items (name, quantity) VALUES (?, 0)').run(resultName)
+  }
   res.json(hydrate(db.prepare('SELECT * FROM crafts WHERE id = ?').get(info.lastInsertRowid)))
 })
 
