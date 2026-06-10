@@ -233,6 +233,21 @@ if (!eventCols.includes('end_date')) {
   db.exec('ALTER TABLE events ADD COLUMN end_date TEXT')
 }
 
+// Migration : tags (JSON array) + ordre d'affichage des photos (drag & drop).
+const photoCols = db.prepare('PRAGMA table_info(photos)').all().map((c) => c.name)
+if (!photoCols.includes('tags')) {
+  db.exec('ALTER TABLE photos ADD COLUMN tags TEXT')
+}
+if (!photoCols.includes('sort_order')) {
+  db.exec('ALTER TABLE photos ADD COLUMN sort_order INTEGER DEFAULT 0')
+}
+
+// Migration : ordre d'affichage par lien (réordonner les photos d'une entité).
+const linkCols = db.prepare('PRAGMA table_info(links)').all().map((c) => c.name)
+if (!linkCols.includes('sort_order')) {
+  db.exec('ALTER TABLE links ADD COLUMN sort_order INTEGER DEFAULT 0')
+}
+
 // Seed predefined room types (schéma wiki : 7 catégories = couleur de bordure du jeu)
 const defaultTypes = [
   ['Blueprints', '#4B7FBF'],

@@ -2,17 +2,23 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
+import { useFileDrop } from '../api/useFileDrop.js'
+import { useDragReorder } from '../api/useDragReorder.js'
 import PhotoAttachModal from './PhotoAttachModal.jsx'
 import Lightbox from './Lightbox.jsx'
 
 // Panneau « Photos » attaché à une entité (type/id) — à poser à côté de LinksPanel.
-// Le retrait détache la photo (supprime le lien) sans l'effacer de la photothèque.
+// - "+ photo" ouvre la popup (import / photothèque)
+// - glisser-déposer d'images depuis l'OS : importe + lie en un geste
+// - glisser les miniatures pour les réordonner (persiste l'ordre des liens)
+// - le × détache (supprime le lien) sans effacer la photo de la photothèque
 export default function PhotosPanel({ type, id }) {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
   const [photos, setPhotos] = useState([])
   const [adding, setAdding] = useState(false)
   const [viewing, setViewing] = useState(null)
+  const [busy, setBusy] = useState(false)
 
   const load = useCallback(() => {
     if (id == null) return
@@ -24,10 +30,37 @@ export default function PhotosPanel({ type, id }) {
 
   const detach = async (linkId) => { await api.deleteLink(linkId); load() }
 
+  const uploadAndLink = useCallback(async (files) => {
+    if (id == null) return
+    setBusy(true)
+    try {
+      for (const f of files) {
+        const photo = await api.uploadPhoto(f)
+        await api.createLink({ from_type: type, from_id: id, to_type: 'photo', to_id: photo.id })
+      }
+    } catch {}
+    setBusy(false)
+    load()
+  }, [type, id, load])
+
+  const { dropProps, active: dropActive } = useFileDrop(uploadAndLink)
+
+  const persistOrder = useCallback((next) => {
+    setPhotos(next)
+    api.reorderEntityPhotos(type, id, next.map((p) => p.id))
+  }, [type, id])
+  const { dragProps, draggingIndex } = useDragReorder(photos, persistOrder)
+
   return (
-    <div style={{ padding: 10, borderRadius: 6, background: 'var(--bp-bg)', border: '1px solid var(--bp-border)' }}>
+    <div {...(canEdit ? dropProps : {})} style={{
+      padding: 10, borderRadius: 6, background: 'var(--bp-bg)',
+      border: `1px solid ${dropActive ? 'var(--bp-accent)' : 'var(--bp-border)'}`,
+      transition: 'border-color .15s',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--bp-text-dim)' }}>Photos</span>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--bp-text-dim)' }}>
+          Photos{busy && <span style={{ color: 'var(--bp-text-muted)', fontWeight: 400 }}> · import…</span>}
+        </span>
         {canEdit && (
           <button onClick={() => setAdding(true)} style={{
             background: 'none', border: 'none', cursor: 'pointer', color: 'var(--bp-accent)', fontSize: 11,
@@ -37,9 +70,12 @@ export default function PhotosPanel({ type, id }) {
 
       {photos.length > 0 ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(64px, 1fr))', gap: 6 }}>
-          {photos.map(p => (
-            <div key={p.id} style={{ position: 'relative', aspectRatio: '1' }}>
-              <img src={p.url} alt={p.caption || ''} title={p.caption || p.original_name || ''}
+          {photos.map((p, i) => (
+            <div key={p.id} {...(canEdit ? dragProps(i) : {})} style={{
+              position: 'relative', aspectRatio: '1', opacity: draggingIndex === i ? 0.4 : 1,
+              cursor: canEdit ? 'grab' : 'default',
+            }}>
+              <img src={p.url} alt={p.caption || ''} title={p.caption || p.original_name || ''} draggable={false}
                 onClick={() => setViewing(p)} style={{
                   width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4,
                   border: '1px solid var(--bp-border)', cursor: 'pointer', display: 'block',
@@ -55,7 +91,11 @@ export default function PhotosPanel({ type, id }) {
           ))}
         </div>
       ) : (
-        !adding && <span style={{ fontSize: 10, color: 'var(--bp-text-muted)' }}>Aucune photo</span>
+        !adding && (
+          <span style={{ fontSize: 10, color: 'var(--bp-text-muted)' }}>
+            {dropActive ? 'Déposez pour attacher' : 'Aucune photo'}
+          </span>
+        )
       )}
 
       {adding && <PhotoAttachModal type={type} id={id} onClose={() => setAdding(false)} onAttached={load} />}

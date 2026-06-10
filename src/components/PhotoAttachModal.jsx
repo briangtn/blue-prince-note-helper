@@ -3,6 +3,7 @@ import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { Input, Btn } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import TagInput from './TagInput.jsx'
 
 // Popup d'attachement d'une photo à une entité (type/id).
 // Deux modes : importer un nouveau fichier, ou piocher dans la photothèque.
@@ -13,9 +14,17 @@ export default function PhotoAttachModal({ type, id, onClose, onAttached }) {
   const [file, setFile] = useState(null)
   const [preview, setPreview] = useState(null)
   const [caption, setCaption] = useState('')
+  const [tags, setTags] = useState([])
+  const [dragOver, setDragOver] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const fileRef = useRef(null)
+
+  const onDropFile = (e) => {
+    e.preventDefault(); setDragOver(false)
+    const img = Array.from(e.dataTransfer.files).find((f) => /^image\//.test(f.type))
+    if (img) { setFile(img); setError('') }
+  }
 
   const loadLibrary = () => api.listPhotos().then(setLibrary)
   useEffect(() => { loadLibrary() }, [])
@@ -39,7 +48,7 @@ export default function PhotoAttachModal({ type, id, onClose, onAttached }) {
     if (!file || busy) return
     setBusy(true); setError('')
     try {
-      const photo = await api.uploadPhoto(file, caption.trim())
+      const photo = await api.uploadPhoto(file, caption.trim(), tags)
       await link(photo.id)
     } catch (err) {
       setError(/413|stockage/i.test(String(err.message)) ? 'Limite de stockage atteinte.' : 'Échec de l\'import.')
@@ -85,22 +94,28 @@ export default function PhotoAttachModal({ type, id, onClose, onAttached }) {
             <form onSubmit={importNew} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div
                 onClick={() => fileRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={onDropFile}
                 style={{
-                  border: '2px dashed var(--bp-border)', borderRadius: 8, padding: preview ? 8 : 28,
-                  textAlign: 'center', cursor: 'pointer', background: 'var(--bp-bg)',
+                  border: `2px dashed ${dragOver ? 'var(--bp-accent)' : 'var(--bp-border)'}`,
+                  borderRadius: 8, padding: preview ? 8 : 28,
+                  textAlign: 'center', cursor: 'pointer',
+                  background: dragOver ? 'var(--bp-accent)11' : 'var(--bp-bg)', transition: 'all .15s',
                 }}>
                 {preview ? (
                   <img src={preview} alt="" style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6, display: 'block', margin: '0 auto' }} />
                 ) : (
                   <div style={{ color: 'var(--bp-text-muted)', fontSize: 13 }}>
                     <Icons.photo style={{ width: 28, height: 28, display: 'block', margin: '0 auto 8px' }} />
-                    Cliquez pour choisir une image
+                    Cliquez ou glissez une image ici
                   </div>
                 )}
               </div>
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={e => { setFile(e.target.files?.[0] || null); setError('') }} />
               <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Légende (optionnel)" />
+              <TagInput value={tags} onChange={setTags} size="md" placeholder="Tags (Entrée pour valider)…" />
               {error && <span style={{ color: '#E87070', fontSize: 12 }}>{error}</span>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 <Btn type="button" variant="ghost" onClick={onClose}>Annuler</Btn>
