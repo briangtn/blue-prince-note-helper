@@ -1,6 +1,9 @@
 const { AUTH_RO_USER, AUTH_RO_PASS, AUTH_RW_USER, AUTH_RW_PASS } = process.env
 
-const authEnabled = AUTH_RO_USER && AUTH_RO_PASS && AUTH_RW_USER && AUTH_RW_PASS
+// L'auth s'active dès qu'un compte lecture-écriture (RW) est défini.
+// Le compte lecture-seule (RO) est optionnel.
+const authEnabled = AUTH_RW_USER && AUTH_RW_PASS
+const roEnabled = AUTH_RO_USER && AUTH_RO_PASS
 
 function parseBasic(header) {
   if (!header || !header.startsWith('Basic ')) return null
@@ -21,7 +24,7 @@ export default function auth(req, res, next) {
 
   if (creds.user === AUTH_RW_USER && creds.pass === AUTH_RW_PASS) {
     req.role = 'rw'
-  } else if (creds.user === AUTH_RO_USER && creds.pass === AUTH_RO_PASS) {
+  } else if (roEnabled && creds.user === AUTH_RO_USER && creds.pass === AUTH_RO_PASS) {
     req.role = 'ro'
   } else {
     res.set('WWW-Authenticate', 'Basic realm="Blue Prince Helper"')

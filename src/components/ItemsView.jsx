@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
-import { useCurrentDay } from '../api/currentDay.js'
 import { lookupItem } from '../api/itemCatalog.js'
 import { Input, Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
@@ -60,14 +59,11 @@ function ItemCard({ item, canEdit, onChange }) {
       <ItemThumb name={item.name} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--bp-text)' }}>{item.name}</div>
-        <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-          {cat && <Badge color={CAT_COLORS[cat] || CAT_COLORS.Item} style={{ fontSize: 10, padding: '1px 6px' }}>{cat}</Badge>}
-          {item.day_found != null && (
-            <Badge style={{ fontSize: 10, padding: '1px 6px' }} title="Jour de découverte">
-              <Icons.calendar width={10} height={10} /> J{item.day_found}
-            </Badge>
-          )}
-        </div>
+        {cat && (
+          <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Badge color={CAT_COLORS[cat] || CAT_COLORS.Item} style={{ fontSize: 10, padding: '1px 6px' }}>{cat}</Badge>
+          </div>
+        )}
         {item.notes && <div style={{ fontSize: 12, color: 'var(--bp-text-dim)', marginTop: 4 }}>{item.notes}</div>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
@@ -106,7 +102,6 @@ export default function ItemsView() {
   const [name, setName] = useState('')
   const [qty, setQty] = useState(1)
   const [query, setQuery] = useState('')
-  const [currentDay] = useCurrentDay()
 
   const load = useCallback(() => api.listItems().then(setItems), [])
   useEffect(() => { load() }, [load])
@@ -123,7 +118,7 @@ export default function ItemsView() {
     if (existing) {
       await api.updateItem(existing.id, { ...existing, quantity: (existing.quantity || 0) + Number(qty || 1) })
     } else {
-      await api.createItem({ name: n, quantity: Number(qty || 1), day_found: currentDay ?? null })
+      await api.createItem({ name: n, quantity: Number(qty || 1) })
     }
     setName(''); setQty(1)
     load()
@@ -169,7 +164,7 @@ export default function ItemsView() {
         <div style={{ fontSize: 11, color: matched ? '#5BAD6E' : 'var(--bp-text-muted)', marginBottom: 18, minHeight: 16 }}>
           {name.trim()
             ? (matched ? `✓ ${matched.name} reconnu — illustration disponible` : "Item libre (tape le nom exact pour révéler l'illustration)")
-            : `Tape le nom complet d'un item pour le révéler${currentDay != null ? ` · sera daté du jour ${currentDay}` : ''}`}
+            : "Tape le nom complet d'un item pour l'ajouter à l'inventaire des items connus"}
         </div>
       )}
 

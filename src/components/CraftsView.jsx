@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
-import { useCurrentDay } from '../api/currentDay.js'
 import { CRAFT_CATALOG, lookupCraft } from '../api/craftCatalog.js'
 import { suggestCrafts, buildInventory, evaluateCraft } from '../api/craftLogic.js'
 import { Input, Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
@@ -15,7 +14,6 @@ export default function CraftsView() {
   const canEdit = role !== 'ro'
   const [items, setItems] = useState([])
   const [discovered, setDiscovered] = useState([])
-  const [currentDay] = useCurrentDay()
   const [name, setName] = useState('')
   const [selected, setSelected] = useState(() => new Set())
   const [benchOpen, setBenchOpen] = useState(false)
@@ -52,7 +50,7 @@ export default function CraftsView() {
   const craft = async (c) => {
     const existing = items.find((i) => i.name.toLowerCase() === c.result.toLowerCase())
     if (existing) await api.updateItem(existing.id, { ...existing, quantity: (existing.quantity || 0) + 1 })
-    else await api.createItem({ name: c.result, quantity: 1, day_found: currentDay ?? null })
+    else await api.createItem({ name: c.result, quantity: 1 })
     load()
   }
 
