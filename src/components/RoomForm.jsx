@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { lookupRoom } from '../api/roomCatalog.js'
 import { Input, TextArea, Select, Btn, ChessPieceSelector } from '../ui/primitives.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 
 const EMPTY = {
   name: '', type: '', position: '',
@@ -8,6 +9,7 @@ const EMPTY = {
 }
 
 export default function RoomForm({ types, initial, onSubmit, onCancel }) {
+  const isMobile = useIsMobile()
   const [form, setForm] = useState(EMPTY)
 
   useEffect(() => {
@@ -53,7 +55,7 @@ export default function RoomForm({ types, initial, onSubmit, onCancel }) {
       <div style={{ fontFamily: 'var(--font-heading)', fontSize: 16, fontWeight: 600 }}>
         {initial?.id ? `Éditer — ${initial.name}` : 'Nouvelle pièce'}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
         <div>
           <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>
             Nom {matched && <span style={{ color: '#5BAD6E' }}>auto-rempli</span>}

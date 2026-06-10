@@ -6,6 +6,7 @@ import { useFileDrop } from '../api/useFileDrop.js'
 import { useDragReorder } from '../api/useDragReorder.js'
 import { Input, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import TagPicker from './TagPicker.jsx'
 import { useTags } from '../api/useTags.js'
 import { tagTextColor } from '../api/tagColors.js'
@@ -70,6 +71,7 @@ function PhotoCard({ photo, canEdit, onChange, onView, dragHandlers, dragging })
 export default function PhotosView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [photos, setPhotos] = useState([])
   const [usage, setUsage] = useState({ used: 0, limit: 0 })
   const [busy, setBusy] = useState(false)
@@ -136,7 +138,7 @@ export default function PhotosView() {
 
   return (
     <div {...(canEdit ? dropProps : {})} style={{
-      maxWidth: 1100, margin: '0 auto', padding: '24px 28px', height: '100%', overflow: 'auto',
+      maxWidth: 1100, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px', height: '100%', overflow: 'auto',
       position: 'relative',
     }}>
       <SectionHead title="Photothèque">
@@ -211,7 +213,7 @@ export default function PhotosView() {
         <EmptyState icon={<Icons.photo style={{ width: '100%', height: '100%' }} />}
           text={filtering ? 'Aucune photo pour cette recherche.' : 'Aucune photo. Glissez des images ici ou cliquez sur Importer.'} />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${isMobile ? 140 : 180}px, 1fr))`, gap: 14 }}>
           {shown.map((p, i) => (
             <PhotoCard key={p.id} photo={p} canEdit={canEdit} onChange={load} onView={setViewing}
               dragHandlers={canEdit ? dragProps(i) : null}

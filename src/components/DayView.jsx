@@ -4,6 +4,7 @@ import { formatGameDate } from '../api/gameDate.js'
 import { useWs } from '../api/useWs.js'
 import { useCurrentDay } from '../api/currentDay.js'
 import { useAuth } from '../AuthContext.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import LinksPanel from './LinksPanel.jsx'
 import PhotosPanel from './PhotosPanel.jsx'
 import RunItemsPanel from './RunItemsPanel.jsx'
@@ -56,6 +57,10 @@ const SOIL_ORDER = ['sterile', 'poor', 'good', 'rich']
 export default function DayView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
+
+  // Sur mobile, le panneau latéral devient une feuille en overlay.
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false)
 
   const [days, setDays] = useState([])
   const [current, setCurrentDay] = useCurrentDay()
@@ -179,6 +184,7 @@ export default function DayView() {
     const existing = placementAt(r, c)
     setPanelTab('cell')
     setSelectedCell({ row: r, col: c })
+    setMobilePanelOpen(true)
     if (existing) {
       setPanelMode('detail')
     } else {
@@ -454,10 +460,66 @@ export default function DayView() {
     )
   }
 
+  const panelContent = (
+    <>
+      {/* Onglets du panneau : Grille (cellule sélectionnée) / Items & crafts du run */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--bp-border)', flexShrink: 0 }}>
+        {[
+          { id: 'cell', label: 'Grille', icon: 'grid' },
+          { id: 'run', label: 'Items & crafts', icon: 'box' },
+        ].map((t) => {
+          const active = panelTab === t.id
+          const IconComp = Icons[t.icon]
+          return (
+            <button key={t.id} onClick={() => setPanelTab(t.id)} style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '10px 8px', background: active ? 'var(--bp-panel)' : 'transparent',
+              border: 'none', borderBottom: active ? '2px solid var(--bp-accent)' : '2px solid transparent',
+              cursor: 'pointer', color: active ? 'var(--bp-text)' : 'var(--bp-text-dim)',
+              fontSize: 12, fontWeight: active ? 600 : 400, fontFamily: 'var(--font-body)',
+            }}>
+              <IconComp style={{ width: 15, height: 15 }} />
+              {t.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {panelTab === 'run' ? (
+        <RunItemsPanel day={current} canEdit={canEdit} />
+      ) : (
+        <SidePanel
+          mode={panelMode}
+          setMode={setPanelMode}
+          selectedCell={selectedCell}
+          selectedPlacement={selectedPlacement}
+          selectedRoom={selectedRoom}
+          selectedIsSticky={selectedIsSticky}
+          selectedTableauCombos={selectedTableauCombos}
+          onSaveTableaux={handleSaveTableaux}
+          selectedSoil={selectedSoil}
+          onSaveSoil={handleSaveSoil}
+          rooms={rooms}
+          types={types}
+          canEdit={canEdit}
+          current={current}
+          overall={overall}
+          onNotesChange={onNotesChange}
+          onClose={closePanel}
+          onPlaceRoom={handlePlaceRoom}
+          onRemovePlacement={handleRemovePlacement}
+          onToggleSticky={handleToggleSticky}
+          onRoomCreated={() => { loadCatalog(); loadDay(current) }}
+          onRoomUpdated={() => { loadCatalog(); loadDay(current) }}
+        />
+      )}
+    </>
+  )
+
   return (
-    <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', height: '100%', overflow: 'hidden' }}>
       {/* ── LEFT COLUMN ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '20px 24px', overflow: 'auto' }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: isMobile ? '14px 12px 80px' : '20px 24px', overflow: 'auto' }}>
 
         {/* Day header */}
         <div style={{ marginBottom: 16 }}>
@@ -505,7 +567,7 @@ export default function DayView() {
           </div>
 
           {/* Day selector + new day button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <Select
               value={current}
               onChange={(e) => switchDay(Number(e.target.value))}
@@ -539,13 +601,13 @@ export default function DayView() {
         {/* Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${COLS}, minmax(100px, 135px))`,
-          gap: 7,
-          padding: 16,
+          gridTemplateColumns: isMobile ? `repeat(${COLS}, minmax(0, 1fr))` : `repeat(${COLS}, minmax(100px, 135px))`,
+          gap: isMobile ? 4 : 7,
+          padding: isMobile ? 8 : 16,
           borderRadius: 12,
           background: 'var(--bp-surface)',
           border: '1px solid var(--bp-border)',
-          width: 'fit-content',
+          width: isMobile ? '100%' : 'fit-content',
         }}>
           {Array.from({ length: ROWS }).map((_, r) =>
             Array.from({ length: COLS }).map((_, c) => renderCell(r, c))
@@ -560,13 +622,13 @@ export default function DayView() {
           }}>🌳 Grounds</div>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(100px, 135px)',
-            gap: 7,
-            padding: 16,
+            gridTemplateColumns: isMobile ? `repeat(${COLS}, minmax(0, 1fr))` : 'minmax(100px, 135px)',
+            gap: isMobile ? 4 : 7,
+            padding: isMobile ? 8 : 16,
             borderRadius: 12,
             background: 'var(--bp-surface)',
             border: '1px solid var(--bp-border)',
-            width: 'fit-content',
+            width: isMobile ? '100%' : 'fit-content',
           }}>
             {GROUNDS.map((g) => renderCell(g.row, g.col))}
           </div>
@@ -587,87 +649,99 @@ export default function DayView() {
         </div>
       </div>
 
-      {/* ── RESIZE HANDLE ── */}
-      <div
-        onMouseDown={() => {
-          resizing.current = true
-          document.body.style.cursor = 'col-resize'
-          document.body.style.userSelect = 'none'
-        }}
-        title="Glisser pour redimensionner"
-        style={{
-          width: 6,
-          flexShrink: 0,
-          cursor: 'col-resize',
-          background: 'transparent',
-          transition: 'background .15s',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bp-accent)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-      />
-
-      {/* ── RIGHT PANEL ── */}
-      <div style={{
-        width: panelWidth,
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        borderLeft: '1px solid var(--bp-border)',
-        background: 'var(--bp-surface)',
-        overflow: 'hidden',
-      }}>
-        {/* Onglets du panneau : Grille (cellule sélectionnée) / Items & crafts du run */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--bp-border)', flexShrink: 0 }}>
-          {[
-            { id: 'cell', label: 'Grille', icon: 'grid' },
-            { id: 'run', label: 'Items & crafts', icon: 'box' },
-          ].map((t) => {
-            const active = panelTab === t.id
-            const IconComp = Icons[t.icon]
-            return (
-              <button key={t.id} onClick={() => setPanelTab(t.id)} style={{
-                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '10px 8px', background: active ? 'var(--bp-panel)' : 'transparent',
-                border: 'none', borderBottom: active ? '2px solid var(--bp-accent)' : '2px solid transparent',
-                cursor: 'pointer', color: active ? 'var(--bp-text)' : 'var(--bp-text-dim)',
-                fontSize: 12, fontWeight: active ? 600 : 400, fontFamily: 'var(--font-body)',
-              }}>
-                <IconComp style={{ width: 15, height: 15 }} />
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
-
-        {panelTab === 'run' ? (
-          <RunItemsPanel day={current} canEdit={canEdit} />
-        ) : (
-        <SidePanel
-          mode={panelMode}
-          setMode={setPanelMode}
-          selectedCell={selectedCell}
-          selectedPlacement={selectedPlacement}
-          selectedRoom={selectedRoom}
-          selectedIsSticky={selectedIsSticky}
-          selectedTableauCombos={selectedTableauCombos}
-          onSaveTableaux={handleSaveTableaux}
-          selectedSoil={selectedSoil}
-          onSaveSoil={handleSaveSoil}
-          rooms={rooms}
-          types={types}
-          canEdit={canEdit}
-          current={current}
-          overall={overall}
-          onNotesChange={onNotesChange}
-          onClose={closePanel}
-          onPlaceRoom={handlePlaceRoom}
-          onRemovePlacement={handleRemovePlacement}
-          onToggleSticky={handleToggleSticky}
-          onRoomCreated={() => { loadCatalog(); loadDay(current) }}
-          onRoomUpdated={() => { loadCatalog(); loadDay(current) }}
+      {/* ── RESIZE HANDLE (desktop seulement) ── */}
+      {!isMobile && (
+        <div
+          onMouseDown={() => {
+            resizing.current = true
+            document.body.style.cursor = 'col-resize'
+            document.body.style.userSelect = 'none'
+          }}
+          title="Glisser pour redimensionner"
+          style={{
+            width: 6,
+            flexShrink: 0,
+            cursor: 'col-resize',
+            background: 'transparent',
+            transition: 'background .15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bp-accent)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
         />
-        )}
-      </div>
+      )}
+
+      {/* ── RIGHT PANEL (desktop) ── */}
+      {!isMobile && (
+        <div style={{
+          width: panelWidth,
+          flexShrink: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          borderLeft: '1px solid var(--bp-border)',
+          background: 'var(--bp-surface)',
+          overflow: 'hidden',
+        }}>
+          {panelContent}
+        </div>
+      )}
+
+      {/* ── MOBILE : bouton flottant + feuille en overlay ── */}
+      {isMobile && !mobilePanelOpen && (
+        <button
+          onClick={() => setMobilePanelOpen(true)}
+          aria-label="Ouvrir le panneau"
+          style={{
+            position: 'fixed', right: 16, bottom: 16, zIndex: 900,
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '12px 18px', borderRadius: 28, border: 'none', cursor: 'pointer',
+            background: 'var(--bp-accent)', color: '#fff',
+            fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-body)',
+            boxShadow: '0 4px 16px rgba(0,0,0,.4)',
+          }}
+        >
+          <Icons.box style={{ width: 18, height: 18 }} />
+          Notes & items
+        </button>
+      )}
+
+      {isMobile && mobilePanelOpen && (
+        <div
+          onClick={() => { setMobilePanelOpen(false); closePanel() }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,.5)' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute', left: 0, right: 0, bottom: 0,
+              height: '88vh', display: 'flex', flexDirection: 'column',
+              background: 'var(--bp-surface)',
+              borderTopLeftRadius: 16, borderTopRightRadius: 16,
+              borderTop: '1px solid var(--bp-border)',
+              overflow: 'hidden',
+              boxShadow: '0 -4px 24px rgba(0,0,0,.5)',
+            }}
+          >
+            {/* Poignée + fermeture */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', padding: '10px 0 6px', flexShrink: 0,
+            }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--bp-border-hover)' }} />
+              <button
+                onClick={() => { setMobilePanelOpen(false); closePanel() }}
+                aria-label="Fermer"
+                style={{
+                  position: 'absolute', right: 12, top: 8, background: 'none', border: 'none',
+                  cursor: 'pointer', color: 'var(--bp-text-muted)', padding: 4, display: 'flex',
+                }}
+              >
+                <Icons.close style={{ width: 18, height: 18 }} />
+              </button>
+            </div>
+            {panelContent}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

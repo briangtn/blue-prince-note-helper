@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import { Input, Select, Btn, Badge, SectionHead, EmptyState, typeColor, chessSymbol, chessLabel, ChessPieceFilter, chessMatchesFilter } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
 import RoomForm from './RoomForm.jsx'
@@ -15,6 +16,24 @@ const DETAIL_FIELDS = [
   ['letters', 'Lettres'],
   ['days_seen', 'Jours vus'],
 ]
+
+// Chip de filtre par type, utilisée dans la barre horizontale mobile.
+function TypeChip({ label, count, color, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+      padding: '6px 12px', borderRadius: 16, cursor: 'pointer',
+      border: `1px solid ${active ? (color || 'var(--bp-accent)') : 'var(--bp-border)'}`,
+      background: active ? (color ? color + '22' : 'var(--bp-panel)') : 'transparent',
+      color: active ? (color || 'var(--bp-text)') : 'var(--bp-text-dim)',
+      fontSize: 13, fontFamily: 'var(--font-body)', whiteSpace: 'nowrap',
+    }}>
+      {color && <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />}
+      <span>{label}</span>
+      <span style={{ fontSize: 11, color: 'var(--bp-text-muted)' }}>{count}</span>
+    </button>
+  )
+}
 
 function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
   const [expanded, setExpanded] = useState(false)
@@ -127,6 +146,7 @@ function RoomCard({ room, types, canEdit, onEdit, onDelete }) {
 export default function RoomsView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
 
   const [types, setTypes] = useState([])
   const [rooms, setRooms] = useState([])
@@ -182,7 +202,8 @@ export default function RoomsView() {
 
   return (
     <div style={{ display: 'flex', height: '100%', overflow: 'hidden' }}>
-      {/* LEFT SIDEBAR — Type filter */}
+      {/* LEFT SIDEBAR — Type filter (desktop) */}
+      {!isMobile && (
       <aside style={{
         width: 200,
         flexShrink: 0,
@@ -276,6 +297,7 @@ export default function RoomsView() {
           </form>
         )}
       </aside>
+      )}
 
       {/* RIGHT MAIN AREA */}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -307,10 +329,30 @@ export default function RoomsView() {
           </div>
 
           {/* Chess piece filter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: 'var(--bp-text-muted)', flexShrink: 0 }}>Pièce d'échecs</span>
             <ChessPieceFilter value={filterChess} onChange={setFilterChess} />
           </div>
+
+          {/* Type filter (mobile) — barre de chips à défilement horizontal */}
+          {isMobile && (
+            <div style={{
+              display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 14,
+              paddingBottom: 4, WebkitOverflowScrolling: 'touch',
+            }}>
+              <TypeChip label="Toutes" count={rooms.length} active={!filterType} onClick={() => setFilterType('')} />
+              {types.map((t) => (
+                <TypeChip
+                  key={t.id}
+                  label={t.name}
+                  count={rooms.filter((r) => r.type === t.name).length}
+                  color={typeColor(t.name, types)}
+                  active={filterType === t.name}
+                  onClick={() => setFilterType(t.name)}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Scrollable content */}
@@ -368,7 +410,7 @@ export default function RoomsView() {
                 {/* Cards grid */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                  gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(340px, 1fr))',
                   gap: 10,
                 }}>
                   {groupRooms.map((room) => (

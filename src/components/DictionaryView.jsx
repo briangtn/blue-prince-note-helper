@@ -4,6 +4,7 @@ import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
 import { Input, TextArea, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 
 function EntryCard({ entry, onChange, canEdit }) {
   const [term, setTerm] = useState(entry.term || '')
@@ -84,6 +85,7 @@ function EntryCard({ entry, onChange, canEdit }) {
 export default function DictionaryView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [entries, setEntries] = useState([])
   const [term, setTerm] = useState('')
   const [query, setQuery] = useState('')
@@ -108,7 +110,7 @@ export default function DictionaryView() {
     : entries
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 28px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px' }}>
       <SectionHead title="Dictionnaire" />
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
@@ -141,7 +143,7 @@ export default function DictionaryView() {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
           gap: 12,
         }}>
           {filtered.map((e) => (

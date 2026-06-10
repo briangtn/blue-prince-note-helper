@@ -30,7 +30,7 @@ export default function LoginForm() {
     }}>
       <form onSubmit={submit} style={{
         background: 'var(--bp-surface)', border: '1px solid var(--bp-border)',
-        borderRadius: 12, padding: 32, width: 320,
+        borderRadius: 12, padding: 32, width: 'min(320px, 90vw)',
         display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>

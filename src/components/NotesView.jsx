@@ -3,6 +3,7 @@ import { api } from '../api/client.js'
 import { useAuth } from '../AuthContext.jsx'
 import { Input, TextArea, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import LinksPanel from './LinksPanel.jsx'
 import PhotosPanel from './PhotosPanel.jsx'
 
@@ -99,6 +100,7 @@ function NoteCard({ note, onChange, canEdit }) {
 export default function NotesView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [notes, setNotes] = useState([])
   const [title, setTitle] = useState('')
 
@@ -114,7 +116,7 @@ export default function NotesView() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 28px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px' }}>
       <SectionHead title="Notes" />
 
       {/* Add form */}
@@ -146,7 +148,7 @@ export default function NotesView() {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
           gap: 12,
         }}>
           {notes.map((n) => (

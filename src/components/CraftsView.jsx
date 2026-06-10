@@ -6,11 +6,13 @@ import { CRAFT_CATALOG, lookupCraft } from '../api/craftCatalog.js'
 import { suggestCrafts, buildInventory, evaluateCraft } from '../api/craftLogic.js'
 import { Input, Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import { ItemThumb } from './ItemsView.jsx'
 import CraftCard from './CraftCard.jsx'
 
 export default function CraftsView() {
   const { role } = useAuth()
+  const isMobile = useIsMobile()
   const canEdit = role !== 'ro'
   const [items, setItems] = useState([])
   const [discovered, setDiscovered] = useState([])
@@ -76,7 +78,7 @@ export default function CraftsView() {
   }, [benchInv, selected, discoveredSet])
 
   return (
-    <div style={{ maxWidth: 920, margin: '0 auto', padding: '24px 28px', height: '100%', overflow: 'auto' }}>
+    <div style={{ maxWidth: 920, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px', height: '100%', overflow: 'auto' }}>
       <SectionHead title="Crafts" />
 
       {/* Découvrir un craft par son nom */}
@@ -88,7 +90,7 @@ export default function CraftsView() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nom exact d'un craft à découvrir…"
-              style={{ flex: 1, minWidth: 240 }}
+              style={{ flex: 1, minWidth: isMobile ? 0 : 240 }}
             />
             <Btn type="submit" variant="accent" disabled={!matched} style={{ flexShrink: 0 }}>
               <Icons.craft style={{ width: 14, height: 14 }} /> Découvrir

@@ -4,6 +4,7 @@ import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
 import { Input, TextArea, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import LinksPanel from './LinksPanel.jsx'
 import PhotosPanel from './PhotosPanel.jsx'
 
@@ -97,6 +98,7 @@ function EntityCard({ entity, onChange, canEdit }) {
 export default function EntitiesView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [entities, setEntities] = useState([])
   const [title, setTitle] = useState('')
 
@@ -113,7 +115,7 @@ export default function EntitiesView() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 28px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px' }}>
       <SectionHead title="Entités" />
 
       {canEdit && (
@@ -143,7 +145,7 @@ export default function EntitiesView() {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
           gap: 12,
         }}>
           {entities.map((e) => (

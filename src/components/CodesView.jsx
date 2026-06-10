@@ -4,6 +4,7 @@ import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
 import { Input, Btn, SectionHead, EmptyState, CODE_STATUSES } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import LinksPanel from './LinksPanel.jsx'
 import PhotosPanel from './PhotosPanel.jsx'
 
@@ -13,6 +14,7 @@ const STATUS_CYCLE = { pending: 'tried', tried: 'confirmed', confirmed: 'rejecte
 export default function CodesView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [codes, setCodes] = useState([])
   const [value, setValue] = useState('')
   const [context, setContext] = useState('')
@@ -47,7 +49,7 @@ export default function CodesView() {
   )
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 28px' }}>
+    <div style={{ maxWidth: 700, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px' }}>
       <SectionHead title="Codes" />
 
       {/* Add form */}
@@ -71,7 +73,7 @@ export default function CodesView() {
               fontFamily: 'var(--font-mono)',
               fontSize: 15,
               fontWeight: 700,
-              width: 120,
+              width: isMobile ? '100%' : 120,
               flexShrink: 0,
             }}
           />

@@ -7,6 +7,7 @@ import { dayToDate, dateToDay } from '../api/gameDate.js'
 import { meta } from '../api/entities.js'
 import { Input, TextArea, Btn, SectionHead } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import LinksPanel from './LinksPanel.jsx'
 import PhotosPanel from './PhotosPanel.jsx'
 
@@ -195,6 +196,7 @@ function TimelineView({ events, onSelect }) {
 export default function CalendarView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [currentDay] = useCurrentDay()
   const [events, setEvents] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -261,7 +263,7 @@ export default function CalendarView() {
   const todayISO = currentDay ? toISO(dayToDate(currentDay)) : null
 
   return (
-    <div style={{ maxWidth: mode === 'timeline' ? 1400 : 1000, margin: '0 auto', padding: '24px 28px', overflowY: 'auto', height: '100%' }}>
+    <div style={{ maxWidth: mode === 'timeline' ? 1400 : 1000, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px', overflowY: 'auto', height: '100%' }}>
       <SectionHead title="Calendrier">
         {mode === 'month' && (
           <>

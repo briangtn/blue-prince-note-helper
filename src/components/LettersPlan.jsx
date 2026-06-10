@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { comboLetters, parseCombos, tableauLetter } from '../api/tableaux.js'
+import { useIsMobile } from '../ui/useIsMobile.js'
 
 const ROWS = 9
 const COLS = 5
@@ -12,6 +13,7 @@ function cellLabel(r, c) {
 
 export default function LettersPlan() {
   const [tableaux, setTableaux] = useState([])
+  const isMobile = useIsMobile()
 
   const load = useCallback(() => api.listTableaux().then(setTableaux), [])
   useEffect(() => { load() }, [load])
@@ -21,7 +23,7 @@ export default function LettersPlan() {
   const filledCount = tableaux.filter((t) => comboLetters(t.combos).length > 0).length
 
   return (
-    <div style={{ padding: '20px 24px', overflow: 'auto', height: '100%' }}>
+    <div style={{ padding: isMobile ? '14px 10px' : '20px 24px', overflow: 'auto', height: '100%' }}>
       <div style={{ marginBottom: 16 }}>
         <h2 style={{
           fontFamily: 'var(--font-heading)', fontSize: 28, fontWeight: 700,
@@ -35,13 +37,15 @@ export default function LettersPlan() {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: `repeat(${COLS}, minmax(90px, 130px))`,
-        gap: 7,
-        padding: 16,
+        gridTemplateColumns: isMobile
+          ? `repeat(${COLS}, minmax(0, 1fr))`
+          : `repeat(${COLS}, minmax(90px, 130px))`,
+        gap: isMobile ? 4 : 7,
+        padding: isMobile ? 8 : 16,
         borderRadius: 12,
         background: 'var(--bp-surface)',
         border: '1px solid var(--bp-border)',
-        width: 'fit-content',
+        width: isMobile ? '100%' : 'fit-content',
       }}>
         {Array.from({ length: ROWS }).map((_, r) =>
           Array.from({ length: COLS }).map((_, c) => {

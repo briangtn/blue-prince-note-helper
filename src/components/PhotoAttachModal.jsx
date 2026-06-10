@@ -62,7 +62,7 @@ export default function PhotoAttachModal({ type, id, onClose, onAttached }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div onClick={e => e.stopPropagation()} style={{
-        width: 'min(560px, 100%)', maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+        width: 'min(560px, 92vw)', maxHeight: '90vh', display: 'flex', flexDirection: 'column',
         background: 'var(--bp-surface)', border: '1px solid var(--bp-border)',
         borderRadius: 10, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,.4)',
       }}>

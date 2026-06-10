@@ -4,6 +4,7 @@ import { useWs } from '../api/useWs.js'
 import { useAuth } from '../AuthContext.jsx'
 import { Input, TextArea, Select, Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 import LinksPanel from './LinksPanel.jsx'
 import PhotosPanel from './PhotosPanel.jsx'
 
@@ -33,6 +34,7 @@ const iconBtn = {
 }
 
 function PersonForm({ initial = {}, onSave, onCancel }) {
+  const isMobile = useIsMobile()
   const [form, setForm] = useState({
     ...EMPTY,
     ...initial,
@@ -55,7 +57,7 @@ function PersonForm({ initial = {}, onSave, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
         <div>
           <label style={{ fontSize: 11, color: 'var(--bp-text-muted)', display: 'block', marginBottom: 4 }}>Nom *</label>
           <Input value={form.name} onChange={set('name')} placeholder="Nom de la personne" autoFocus />
@@ -91,6 +93,7 @@ function PersonForm({ initial = {}, onSave, onCancel }) {
 export default function PeopleView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [people, setPeople] = useState([])
   const [editing, setEditing] = useState(null)
   const [q, setQ] = useState('')
@@ -124,9 +127,9 @@ export default function PeopleView() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 28px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px' }}>
       <SectionHead title="Personnes">
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', flex: isMobile ? 1 : undefined, minWidth: 0 }}>
           <Icons.search style={{
             width: 14, height: 14,
             position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)',
@@ -136,7 +139,7 @@ export default function PeopleView() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Rechercher…"
-            style={{ paddingLeft: 30, width: 180 }}
+            style={{ paddingLeft: 30, width: isMobile ? '100%' : 180 }}
           />
         </div>
         {canEdit && (
@@ -170,7 +173,7 @@ export default function PeopleView() {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(320px, 1fr))',
           gap: 12,
         }}>
           {filtered.map((p) => (

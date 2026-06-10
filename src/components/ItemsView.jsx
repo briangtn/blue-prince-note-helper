@@ -5,6 +5,7 @@ import { useAuth } from '../AuthContext.jsx'
 import { lookupItem } from '../api/itemCatalog.js'
 import { Input, Btn, Badge, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
+import { useIsMobile } from '../ui/useIsMobile.js'
 
 const CAT_COLORS = {
   Contraption: '#E8913A',
@@ -98,6 +99,7 @@ const stepBtn = {
 export default function ItemsView() {
   const { role } = useAuth()
   const canEdit = role !== 'ro'
+  const isMobile = useIsMobile()
   const [items, setItems] = useState([])
   const [name, setName] = useState('')
   const [qty, setQty] = useState(1)
@@ -132,7 +134,7 @@ export default function ItemsView() {
   const totalQty = items.reduce((s, i) => s + (i.quantity || 0), 0)
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 28px', height: '100%', overflow: 'auto' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px', height: '100%', overflow: 'auto' }}>
       <SectionHead title="Inventaire — items connus">
         <Badge style={{ fontSize: 11 }}>{items.length} connus · {totalQty} au total</Badge>
       </SectionHead>
@@ -181,7 +183,7 @@ export default function ItemsView() {
           text={q ? 'Aucun item trouvé.' : 'Aucun item découvert pour le moment.'}
         />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
           {filtered.map((it) => <ItemCard key={it.id} item={it} canEdit={canEdit} onChange={load} />)}
         </div>
       )}
