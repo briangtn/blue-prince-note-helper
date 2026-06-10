@@ -125,6 +125,11 @@ export const api = {
   reorderPhotos: (ids) => req('/photos/order', { method: 'PUT', body: { ids } }),
   reorderEntityPhotos: (entity_type, entity_id, ids) =>
     req('/photos/entity-order', { method: 'PUT', body: { entity_type, entity_id, ids } }),
+  // tags (catalogue façon labels GitHub : nom + couleur)
+  listTags: () => req('/tags'),
+  createTag: (body) => req('/tags', { method: 'POST', body }),
+  updateTag: (id, body) => req(`/tags/${id}`, { method: 'PUT', body }),
+  deleteTag: (id) => req(`/tags/${id}`, { method: 'DELETE' }),
   // links
   listEntities: () => req('/links/entities'),
   linksFor: (type, id) => req(`/links?type=${type}&id=${id}`),

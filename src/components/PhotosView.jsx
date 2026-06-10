@@ -6,7 +6,9 @@ import { useFileDrop } from '../api/useFileDrop.js'
 import { useDragReorder } from '../api/useDragReorder.js'
 import { Input, Btn, SectionHead, EmptyState } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
-import TagInput from './TagInput.jsx'
+import TagPicker from './TagPicker.jsx'
+import { useTags } from '../api/useTags.js'
+import { tagTextColor } from '../api/tagColors.js'
 import Lightbox from './Lightbox.jsx'
 
 function fmtSize(bytes) {
@@ -51,7 +53,7 @@ function PhotoCard({ photo, canEdit, onChange, onView, dragHandlers, dragging })
             width: '100%', background: 'transparent', border: 'none', outline: 'none',
             fontSize: 12, color: 'var(--bp-text)', fontFamily: 'var(--font-body)',
           }} />
-        <TagInput value={photo.tags || []} onChange={saveTags} readOnly={!canEdit} />
+        <TagPicker value={photo.tags || []} onChange={saveTags} readOnly={!canEdit} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 10, color: 'var(--bp-text-muted)' }}>{fmtSize(photo.size)}</span>
           {canEdit && (
@@ -76,6 +78,7 @@ export default function PhotosView() {
   const [activeTags, setActiveTags] = useState([])
   const [query, setQuery] = useState('')
   const fileRef = useRef(null)
+  const { colorOf } = useTags()
 
   const load = useCallback(() => {
     api.listPhotos().then(setPhotos)
@@ -116,11 +119,17 @@ export default function PhotosView() {
     !q || (p.caption || '').toLowerCase().includes(q) || (p.tags || []).some((t) => t.toLowerCase().includes(q))
   const shown = photos.filter((p) => activeTags.every((t) => (p.tags || []).includes(t)) && matchQuery(p))
 
-  // Réorganisation : seulement sans filtre actif (l'ordre est global).
-  const persistOrder = useCallback((next) => {
-    setPhotos(next)
-    api.reorderPhotos(next.map((p) => p.id))
-  }, [])
+  // Réorganisation par glisser-déposer. L'ordre est global, mais on peut
+  // réorganiser même avec un filtre actif : les photos visibles reprennent,
+  // dans leur nouvel ordre, les emplacements qu'elles occupaient dans la liste
+  // globale ; les photos masquées par le filtre ne bougent pas.
+  const persistOrder = useCallback((nextShown) => {
+    const shownIds = new Set(shown.map((p) => p.id))
+    let k = 0
+    const merged = photos.map((p) => (shownIds.has(p.id) ? nextShown[k++] : p))
+    setPhotos(merged)
+    api.reorderPhotos(merged.map((p) => p.id))
+  }, [photos, shown])
   const { dragProps, draggingIndex } = useDragReorder(shown, persistOrder)
 
   const pct = usage.limit ? Math.min(100, (usage.used / usage.limit) * 100) : 0
@@ -174,13 +183,18 @@ export default function PhotosView() {
           <span style={{ fontSize: 11, color: 'var(--bp-text-muted)' }}>Tags :</span>
           {allTags.map((t) => {
             const on = activeTags.includes(t)
+            const c = colorOf(t)
             return (
-              <button key={t} onClick={() => toggleTag(t)} style={{
-                padding: '2px 10px', borderRadius: 12, fontSize: 11, cursor: 'pointer',
-                border: `1px solid ${on ? 'var(--bp-accent)' : 'var(--bp-border)'}`,
-                background: on ? 'var(--bp-accent)' : 'transparent',
-                color: on ? '#fff' : 'var(--bp-text-dim)',
-              }}>{t}</button>
+              <button key={t} onClick={() => toggleTag(t)} title={t} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${c}`,
+                background: on ? c : c + '22',
+                color: on ? tagTextColor(c) : 'var(--bp-text)',
+              }}>
+                {!on && <span style={{ width: 8, height: 8, borderRadius: '50%', background: c }} />}
+                {t}
+              </button>
             )
           })}
           {activeTags.length > 0 && (
@@ -200,15 +214,9 @@ export default function PhotosView() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14 }}>
           {shown.map((p, i) => (
             <PhotoCard key={p.id} photo={p} canEdit={canEdit} onChange={load} onView={setViewing}
-              dragHandlers={canEdit && !filtering ? dragProps(i) : null}
-              dragging={!filtering && draggingIndex === i} />
+              dragHandlers={canEdit ? dragProps(i) : null}
+              dragging={draggingIndex === i} />
           ))}
-        </div>
-      )}
-
-      {filtering && canEdit && (
-        <div style={{ fontSize: 10, color: 'var(--bp-text-muted)', marginTop: 12 }}>
-          Effacez la recherche et les tags pour réorganiser les photos.
         </div>
       )}
 

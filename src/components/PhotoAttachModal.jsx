@@ -3,7 +3,7 @@ import { api } from '../api/client.js'
 import { useWs } from '../api/useWs.js'
 import { Input, Btn } from '../ui/primitives.jsx'
 import { Icons } from '../ui/Icons.jsx'
-import TagInput from './TagInput.jsx'
+import TagPicker from './TagPicker.jsx'
 
 // Popup d'attachement d'une photo à une entité (type/id).
 // Deux modes : importer un nouveau fichier, ou piocher dans la photothèque.
@@ -115,7 +115,7 @@ export default function PhotoAttachModal({ type, id, onClose, onAttached }) {
               <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }}
                 onChange={e => { setFile(e.target.files?.[0] || null); setError('') }} />
               <Input value={caption} onChange={e => setCaption(e.target.value)} placeholder="Légende (optionnel)" />
-              <TagInput value={tags} onChange={setTags} size="md" placeholder="Tags (Entrée pour valider)…" />
+              <TagPicker value={tags} onChange={setTags} size="md" placeholder="Ajouter des tags…" />
               {error && <span style={{ color: '#E87070', fontSize: 12 }}>{error}</span>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 <Btn type="button" variant="ghost" onClick={onClose}>Annuler</Btn>

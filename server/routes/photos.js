@@ -5,6 +5,7 @@ import { dirname, join, extname } from 'path'
 import { existsSync, mkdirSync, unlinkSync } from 'fs'
 import { randomUUID } from 'crypto'
 import db from '../db.js'
+import { ensureTags } from './tags.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -43,10 +44,6 @@ function parseTagsInput(raw) {
     if (Array.isArray(j)) return j.map((t) => String(t).trim()).filter(Boolean)
   } catch {}
   return String(raw).split(',').map((t) => t.trim()).filter(Boolean)
-}
-
-function serializeTags(tags) {
-  return JSON.stringify(parseTagsInput(tags))
 }
 
 function withUrl(p) {
@@ -114,9 +111,11 @@ router.post('/', upload.single('file'), (req, res) => {
     return res.status(413).json({ error: 'Limite de stockage atteinte' })
   }
 
+  const tagNames = parseTagsInput(req.body.tags)
+  ensureTags(tagNames)
   const info = db
     .prepare('INSERT INTO photos (filename, original_name, mime, size, caption, tags) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(req.file.filename, req.file.originalname ?? null, req.file.mimetype ?? null, req.file.size ?? 0, req.body.caption ?? null, serializeTags(req.body.tags))
+    .run(req.file.filename, req.file.originalname ?? null, req.file.mimetype ?? null, req.file.size ?? 0, req.body.caption ?? null, JSON.stringify(tagNames))
   res.json(withUrl(db.prepare('SELECT * FROM photos WHERE id = ?').get(info.lastInsertRowid)))
 })
 
@@ -125,7 +124,12 @@ router.put('/:id', (req, res) => {
   if (!cur) return res.status(404).json({ error: 'introuvable' })
   // Mise à jour partielle : un champ absent du body est conservé tel quel.
   const caption = 'caption' in req.body ? req.body.caption : cur.caption
-  const tags = 'tags' in req.body ? serializeTags(req.body.tags) : (cur.tags ?? '[]')
+  let tags = cur.tags ?? '[]'
+  if ('tags' in req.body) {
+    const names = parseTagsInput(req.body.tags)
+    ensureTags(names)
+    tags = JSON.stringify(names)
+  }
   db.prepare('UPDATE photos SET caption = ?, tags = ? WHERE id = ?')
     .run(caption ?? null, tags, req.params.id)
   res.json(withUrl(db.prepare('SELECT * FROM photos WHERE id = ?').get(req.params.id)))

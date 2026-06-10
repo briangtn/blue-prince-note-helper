@@ -20,6 +20,7 @@ import runItems from './routes/runItems.js'
 import crafts from './routes/crafts.js'
 import links from './routes/links.js'
 import photos, { uploadsDir } from './routes/photos.js'
+import tags from './routes/tags.js'
 import auth from './auth.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -90,6 +91,7 @@ app.use('/api/run-items', runItems)
 app.use('/api/crafts', crafts)
 app.use('/api/links', links)
 app.use('/api/photos', photos)
+app.use('/api/tags', tags)
 
 const distPath = join(__dirname, '..', 'dist')
 app.use(express.static(distPath))
