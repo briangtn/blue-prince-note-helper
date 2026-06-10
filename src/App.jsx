@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './AuthContext.jsx'
 import { ThemeProvider, useTheme } from './ui/ThemeContext.jsx'
 import { Icons } from './ui/Icons.jsx'
@@ -7,6 +8,8 @@ import DayView from './components/DayView.jsx'
 import RoomsView from './components/RoomsView.jsx'
 import PeopleView from './components/PeopleView.jsx'
 import CodesView from './components/CodesView.jsx'
+import ItemsView from './components/ItemsView.jsx'
+import CraftsView from './components/CraftsView.jsx'
 import NotesView from './components/NotesView.jsx'
 import DictionaryView from './components/DictionaryView.jsx'
 import EntitiesView from './components/EntitiesView.jsx'
@@ -18,27 +21,31 @@ import CalendarView from './components/CalendarView.jsx'
 import LettersPlan from './components/LettersPlan.jsx'
 
 const NAV_ITEMS = [
-  { id: 'day',    label: 'Jour',       icon: 'grid' },
-  { id: 'rooms',  label: 'Pièces',     icon: 'door' },
-  { id: 'people', label: 'Personnes',  icon: 'people' },
-  { id: 'codes',  label: 'Codes',      icon: 'key' },
-  { id: 'notes',  label: 'Notes',      icon: 'note' },
-  { id: 'dictionary', label: 'Dictionnaire', icon: 'book' },
-  { id: 'entities', label: 'Entités',  icon: 'grid' },
+  { id: 'day',    path: '/day',    label: 'Jour',       icon: 'grid' },
+  { id: 'rooms',  path: '/rooms',  label: 'Pièces',     icon: 'door' },
+  { id: 'people', path: '/people', label: 'Personnes',  icon: 'people' },
+  { id: 'codes',  path: '/codes',  label: 'Codes',      icon: 'key' },
+  { id: 'items',  path: '/items',  label: 'Items',      icon: 'box' },
+  { id: 'crafts', path: '/crafts', label: 'Crafts',     icon: 'craft' },
+  { id: 'notes',  path: '/notes',  label: 'Notes',      icon: 'note' },
+  { id: 'dictionary', path: '/dictionary', label: 'Dictionnaire', icon: 'book' },
+  { id: 'entities', path: '/entities', label: 'Entités',  icon: 'grid' },
 ]
 
 const EXTRA_ITEMS = [
-  { id: 'letters',   label: 'Plan lettres', icon: 'grid' },
-  { id: 'calendar',  label: 'Calendrier', icon: 'calendar' },
-  { id: 'relations', label: 'Relations', icon: 'people' },
-  { id: 'genealogy', label: 'Généalogie', icon: 'crown' },
-  { id: 'board',     label: 'Whiteboard', icon: 'edit' },
-  { id: 'date',      label: 'Calcul date', icon: 'calendar' },
+  { id: 'letters',   path: '/letters',   label: 'Plan lettres', icon: 'grid' },
+  { id: 'calendar',  path: '/calendar',  label: 'Calendrier', icon: 'calendar' },
+  { id: 'relations', path: '/relations', label: 'Relations', icon: 'people' },
+  { id: 'genealogy', path: '/genealogy', label: 'Généalogie', icon: 'crown' },
+  { id: 'board',     path: '/board',     label: 'Whiteboard', icon: 'edit' },
+  { id: 'date',      path: '/date',      label: 'Calcul date', icon: 'calendar' },
 ]
 
-function Sidebar({ tab, setTab }) {
+function Sidebar() {
   const { user, role, logout } = useAuth()
   const { theme, setTheme, navStyle, setNavStyle } = useTheme()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [showSettings, setShowSettings] = useState(false)
   const [showMore, setShowMore] = useState(false)
 
@@ -66,10 +73,10 @@ function Sidebar({ tab, setTab }) {
       </div>
 
       {NAV_ITEMS.map(item => {
-        const active = tab === item.id
+        const active = pathname === item.path
         const IconComp = Icons[item.icon]
         return (
-          <button key={item.id} onClick={() => setTab(item.id)} style={{
+          <button key={item.id} onClick={() => navigate(item.path)} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
             background: active ? 'var(--bp-panel)' : 'transparent',
             border: 'none', cursor: 'pointer',
@@ -101,10 +108,10 @@ function Sidebar({ tab, setTab }) {
       </div>
 
       {showMore && EXTRA_ITEMS.map(item => {
-        const active = tab === item.id
+        const active = pathname === item.path
         const IconComp = Icons[item.icon]
         return (
-          <button key={item.id} onClick={() => setTab(item.id)} style={{
+          <button key={item.id} onClick={() => navigate(item.path)} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px',
             background: active ? 'var(--bp-panel)' : 'transparent',
             border: 'none', cursor: 'pointer',
@@ -184,9 +191,11 @@ function Sidebar({ tab, setTab }) {
   )
 }
 
-function TopBar({ tab, setTab }) {
+function TopBar() {
   const { user, role, logout } = useAuth()
   const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
 
   return (
     <header style={{
@@ -209,10 +218,10 @@ function TopBar({ tab, setTab }) {
         }}>Blue Prince</span>
       </div>
       {[...NAV_ITEMS, ...EXTRA_ITEMS].map(item => {
-        const active = tab === item.id
+        const active = pathname === item.path
         const IconComp = Icons[item.icon]
         return (
-          <button key={item.id} onClick={() => setTab(item.id)} style={{
+          <button key={item.id} onClick={() => navigate(item.path)} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px', borderRadius: 6,
             background: active ? 'var(--bp-panel)' : 'transparent',
@@ -250,7 +259,6 @@ function TopBar({ tab, setTab }) {
 }
 
 function AppContent() {
-  const [tab, setTab] = useState('day')
   const { navStyle } = useTheme()
   const isSidebar = navStyle === 'sidebar'
 
@@ -260,25 +268,27 @@ function AppContent() {
       height: '100vh', width: '100vw', overflow: 'hidden',
       background: 'var(--bp-bg)',
     }}>
-      {isSidebar ? (
-        <Sidebar tab={tab} setTab={setTab} />
-      ) : (
-        <TopBar tab={tab} setTab={setTab} />
-      )}
+      {isSidebar ? <Sidebar /> : <TopBar />}
       <main style={{ flex: 1, overflow: 'hidden' }}>
-        {tab === 'day' && <DayView />}
-        {tab === 'rooms' && <RoomsView />}
-        {tab === 'people' && <PeopleView />}
-        {tab === 'codes' && <CodesView />}
-        {tab === 'notes' && <NotesView />}
-        {tab === 'dictionary' && <DictionaryView />}
-        {tab === 'entities' && <EntitiesView />}
-        {tab === 'letters' && <LettersPlan />}
-        {tab === 'calendar' && <CalendarView />}
-        {tab === 'relations' && <RelationsGraph />}
-        {tab === 'genealogy' && <Genealogy />}
-        {tab === 'board' && <Whiteboard />}
-        {tab === 'date' && <DateCalc />}
+        <Routes>
+          <Route path="/" element={<Navigate to="/day" replace />} />
+          <Route path="/day" element={<DayView />} />
+          <Route path="/rooms" element={<RoomsView />} />
+          <Route path="/people" element={<PeopleView />} />
+          <Route path="/codes" element={<CodesView />} />
+          <Route path="/items" element={<ItemsView />} />
+          <Route path="/crafts" element={<CraftsView />} />
+          <Route path="/notes" element={<NotesView />} />
+          <Route path="/dictionary" element={<DictionaryView />} />
+          <Route path="/entities" element={<EntitiesView />} />
+          <Route path="/letters" element={<LettersPlan />} />
+          <Route path="/calendar" element={<CalendarView />} />
+          <Route path="/relations" element={<RelationsGraph />} />
+          <Route path="/genealogy" element={<Genealogy />} />
+          <Route path="/board" element={<Whiteboard />} />
+          <Route path="/date" element={<DateCalc />} />
+          <Route path="*" element={<Navigate to="/day" replace />} />
+        </Routes>
       </main>
     </div>
   )

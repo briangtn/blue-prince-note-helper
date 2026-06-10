@@ -144,6 +144,30 @@ db.exec(`
     PRIMARY KEY (row, col)
   );
 
+  -- Items trouvés (inventaire). quantity = nombre possédé.
+  -- day_found = jour où l'item a été trouvé (optionnel, lié à days.day_number).
+  CREATE TABLE IF NOT EXISTS items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    day_found INTEGER,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- Crafts (recettes) découverts. ingredients = JSON [{name, qty}, …].
+  -- result_qty = nombre d'items produits par le craft.
+  CREATE TABLE IF NOT EXISTS crafts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    ingredients TEXT,
+    result_qty INTEGER DEFAULT 1,
+    notes TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   -- Liens universels entre n'importe quelles entités
   CREATE TABLE IF NOT EXISTS links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

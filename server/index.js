@@ -15,6 +15,8 @@ import notes from './routes/notes.js'
 import dictionary from './routes/dictionary.js'
 import entities from './routes/entities.js'
 import events from './routes/events.js'
+import items from './routes/items.js'
+import crafts from './routes/crafts.js'
 import links from './routes/links.js'
 import auth from './auth.js'
 
@@ -22,6 +24,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const app = express()
 app.use(cors())
 app.use(express.json({ limit: '5mb' }))
+
+// --- Log d'accès : une ligne par requête (qui, quoi, d'où) ---
+app.use((req, res, next) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '-'
+  const at = new Date().toISOString()
+  res.on('finish', () => {
+    console.log(`[access] ${at} ${ip} ${req.method} ${req.originalUrl} -> ${res.statusCode}`)
+  })
+  next()
+})
 
 // --- WebSocket broadcast ---
 const server = createServer(app)
@@ -67,6 +79,8 @@ app.use('/api/notes', notes)
 app.use('/api/dictionary', dictionary)
 app.use('/api/entities', entities)
 app.use('/api/events', events)
+app.use('/api/items', items)
+app.use('/api/crafts', crafts)
 app.use('/api/links', links)
 
 const distPath = join(__dirname, '..', 'dist')

@@ -85,6 +85,19 @@ export const api = {
   createEvent: (body) => req('/events', { method: 'POST', body }),
   updateEvent: (id, body) => req(`/events/${id}`, { method: 'PUT', body }),
   deleteEvent: (id) => req(`/events/${id}`, { method: 'DELETE' }),
+  // items (inventaire des items découverts)
+  listItems: (params = {}) => {
+    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
+    return req('/items' + (qs ? `?${qs}` : ''))
+  },
+  createItem: (body) => req('/items', { method: 'POST', body }),
+  updateItem: (id, body) => req(`/items/${id}`, { method: 'PUT', body }),
+  deleteItem: (id) => req(`/items/${id}`, { method: 'DELETE' }),
+  // crafts (recettes découvertes)
+  listCrafts: () => req('/crafts'),
+  createCraft: (body) => req('/crafts', { method: 'POST', body }),
+  updateCraft: (id, body) => req(`/crafts/${id}`, { method: 'PUT', body }),
+  deleteCraft: (id) => req(`/crafts/${id}`, { method: 'DELETE' }),
   // links
   listEntities: () => req('/links/entities'),
   linksFor: (type, id) => req(`/links?type=${type}&id=${id}`),
@@ -100,6 +113,8 @@ export const api = {
       case 'note': { const n = await api.createNote({ title: label, body: '' }); return { type, id: n.id, label: n.title } }
       case 'entity': { const e = await api.createEntityItem({ title: label, description: '' }); return { type, id: e.id, label: e.title } }
       case 'event': { const ev = await api.createEvent({ title: label, description: '', date: null }); return { type, id: ev.id, label: ev.title } }
+      case 'item': { const it = await api.createItem({ name: label, quantity: 1 }); return { type, id: it.id, label: it.name } }
+      case 'craft': { const cr = await api.createCraft({ name: label, ingredients: [] }); return { type, id: cr.id, label: cr.name } }
       case 'day': { const d = await api.startDay(Number(label)); return { type, id: d.day_number, label: `Days ${d.day_number}` } }
       default: throw new Error('type inconnu: ' + type)
     }

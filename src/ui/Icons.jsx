@@ -17,4 +17,6 @@ export const Icons = {
   settings: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><circle cx="10" cy="10" r="3"/><path d="M10 1v2m0 14v2M1 10h2m14 0h2M3.5 3.5l1.4 1.4m10.2 10.2l1.4 1.4M16.5 3.5l-1.4 1.4M4.9 14.1l-1.4 1.4"/></svg>,
   logout: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M7 17H4a1 1 0 01-1-1V4a1 1 0 011-1h3M13 14l4-4-4-4M17 10H7"/></svg>,
   book: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M3 4a1 1 0 011-1h5a2 2 0 012 2v11a2 2 0 00-2-2H4a1 1 0 01-1-1V4z"/><path d="M17 4a1 1 0 00-1-1h-5a2 2 0 00-2 2v11a2 2 0 012-2h5a1 1 0 001-1V4z"/></svg>,
+  box: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M10 2l7 3.5v9L10 18l-7-3.5v-9L10 2z"/><path d="M3 5.5L10 9l7-3.5M10 9v9"/></svg>,
+  craft: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12.5 3.5a3 3 0 00-4 4l-5 5L5 14l5-5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/><path d="M11 11l4.5 4.5L17 14l-4.5-4.5"/></svg>,
 }

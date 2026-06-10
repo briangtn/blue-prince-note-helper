@@ -20,6 +20,10 @@ function allEntities() {
     out.push({ type: 'entity', id: e.id, label: e.title || `Entité #${e.id}` })
   for (const ev of db.prepare('SELECT id, title FROM events').all())
     out.push({ type: 'event', id: ev.id, label: ev.title || `Événement #${ev.id}` })
+  for (const it of db.prepare('SELECT id, name FROM items').all())
+    out.push({ type: 'item', id: it.id, label: `🎒 ${it.name}` })
+  for (const cr of db.prepare('SELECT id, name FROM crafts').all())
+    out.push({ type: 'craft', id: cr.id, label: `⚒️ ${cr.name}` })
   return out
 }
 
