@@ -49,6 +49,7 @@ export const api = {
   startDay: (day_number) => req('/days', { method: 'POST', body: { day_number } }),
   getDay: (n) => req(`/days/${n}`),
   updateDayNotes: (n, overall_notes) => req(`/days/${n}`, { method: 'PUT', body: { overall_notes } }),
+  setSlept: (n, body) => req(`/days/${n}/slept`, { method: 'PUT', body }),
   setPlacement: (n, body) => req(`/days/${n}/placement`, { method: 'PUT', body }),
   removePlacement: (n, body) => req(`/days/${n}/placement`, { method: 'DELETE', body }),
   setSticky: (body) => req('/days/sticky', { method: 'PUT', body }),

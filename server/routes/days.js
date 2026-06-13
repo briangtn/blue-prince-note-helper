@@ -59,6 +59,16 @@ router.put('/:n', (req, res) => {
   res.json(db.prepare('SELECT * FROM days WHERE day_number = ?').get(n))
 })
 
+// Marquer la cellule où l'on a dormi ce jour (row/col null pour décocher).
+router.put('/:n/slept', (req, res) => {
+  const n = Number(req.params.n)
+  const { row, col } = req.body
+  db.prepare('INSERT OR IGNORE INTO days (day_number) VALUES (?)').run(n)
+  db.prepare('UPDATE days SET slept_row = ?, slept_col = ? WHERE day_number = ?')
+    .run(row ?? null, col ?? null, n)
+  res.json({ ok: true })
+})
+
 // Upsert a placement on a cell
 router.put('/:n/placement', (req, res) => {
   const n = Number(req.params.n)

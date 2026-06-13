@@ -66,6 +66,7 @@ export default function DayView() {
   const [current, setCurrentDay] = useCurrentDay()
   const [placements, setPlacements] = useState([])
   const [sticky, setSticky] = useState([])
+  const [slept, setSlept] = useState(null) // {row, col} où l'on a dormi ce jour, ou null
   const [overall, setOverall] = useState('')
   const [types, setTypes] = useState([])
   const [rooms, setRooms] = useState([])
@@ -125,6 +126,7 @@ export default function DayView() {
     api.getDay(n).then(({ day, placements: pl, sticky: st }) => {
       setPlacements(pl)
       setSticky(st || [])
+      setSlept(day.slept_row != null && day.slept_col != null ? { row: day.slept_row, col: day.slept_col } : null)
       setOverall(day.overall_notes || '')
     })
   }, [])
@@ -138,6 +140,7 @@ export default function DayView() {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   const stickyAt = (r, c) => sticky.find((p) => p.row === r && p.col === c)
+  const isSleptCell = (r, c) => slept != null && slept.row === r && slept.col === c
   // Les placements sticky priment : ils occupent la cellule sur tous les jours.
   const placementAt = (r, c) => stickyAt(r, c) || placements.find((p) => p.row === r && p.col === c)
   // Tableaux par position (global, indépendant du jour et de la pièce).
@@ -205,6 +208,15 @@ export default function DayView() {
     await loadDay(current)
     loadCatalog()
     setPanelMode('detail')
+  }
+
+  // Cocher/décocher la pièce où l'on a dormi ce jour (une seule par jour).
+  const handleToggleSlept = async () => {
+    if (!selectedCell) return
+    const { row, col } = selectedCell
+    const next = isSleptCell(row, col) ? { row: null, col: null } : { row, col }
+    await api.setSlept(current, next)
+    await loadDay(current)
   }
 
   const handleSaveTableaux = async (row, col, combos) => {
@@ -329,6 +341,7 @@ export default function DayView() {
     const label = grounds?.short ?? cellLabel(r, c)
     const p = placementAt(r, c)
     const isStickyCell = !!stickyAt(r, c)
+    const sleptHere = isSleptCell(r, c)
     const color = p ? typeColor(p.room_type, types) : null
     const isSelected = selectedCell?.row === r && selectedCell?.col === c
     const chess = p ? chessSymbol(p.chess_pieces) : null
@@ -406,6 +419,15 @@ export default function DayView() {
             fontSize: 12, zIndex: 2, cursor: 'help',
             textShadow: '0 1px 2px rgba(0,0,0,0.9)',
           }}>⚡</span>
+        )}
+
+        {/* Bottom-right: pièce où l'on a dormi ce jour */}
+        {sleptHere && (
+          <span title="J'ai dormi ici ce jour" style={{
+            position: 'absolute', bottom: 3, right: 5,
+            fontSize: 12, zIndex: 2, cursor: 'help',
+            textShadow: '0 1px 2px rgba(0,0,0,0.9)',
+          }}>💤</span>
         )}
 
         {/* Top-right: chess piece + pin (épinglé) */}
@@ -524,6 +546,8 @@ export default function DayView() {
           onPlaceRoom={handlePlaceRoom}
           onRemovePlacement={handleRemovePlacement}
           onToggleSticky={handleToggleSticky}
+          selectedIsSlept={selectedCell ? isSleptCell(selectedCell.row, selectedCell.col) : false}
+          onToggleSlept={handleToggleSlept}
           onRoomCreated={() => { loadCatalog(); loadDay(current) }}
           onRoomUpdated={() => { loadCatalog(); loadDay(current) }}
         />
@@ -813,7 +837,7 @@ function SidePanel({
   selectedSoil, onSaveSoil,
   rooms, types, canEdit, current,
   overall, onNotesChange,
-  onClose, onPlaceRoom, onRemovePlacement, onToggleSticky, onRoomCreated, onRoomUpdated,
+  onClose, onPlaceRoom, onRemovePlacement, onToggleSticky, selectedIsSlept, onToggleSlept, onRoomCreated, onRoomUpdated,
 }) {
   const label = selectedCell ? cellLabel(selectedCell.row, selectedCell.col) : null
   // Les cases des Grounds (Outer Room) ont un libellé parlant : pas de préfixe « Case ».
@@ -902,6 +926,8 @@ function SidePanel({
             canEdit={canEdit}
             onRemove={onRemovePlacement}
             onToggleSticky={onToggleSticky}
+            isSlept={selectedIsSlept}
+            onToggleSlept={onToggleSlept}
             onSaved={onRoomUpdated}
             current={current}
             selectedCell={selectedCell}
@@ -1046,7 +1072,7 @@ function PickPanel({ rooms, types, onPick, onNewRoom }) {
 // Detail panel: show placed room info
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onToggleSticky, onSaved, current, selectedCell, tableauCombos, onSaveTableaux }) {
+function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onToggleSticky, isSlept, onToggleSlept, onSaved, current, selectedCell, tableauCombos, onSaveTableaux }) {
   const color = typeColor(placement.room_type, types)
 
   // ── Read-only view (RO users) ─────────────────────────────────────────────
@@ -1061,6 +1087,7 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Badge color={color}>{placement.room_type}</Badge>
             {isSticky && <Badge color="var(--bp-gold)">📌 Épinglée</Badge>}
+            {isSlept && <Badge color="var(--bp-accent)">💤 Dodo</Badge>}
             {!!room?.power_conduit && <Badge color="var(--bp-gold)">⚡ Conduite énergie</Badge>}
           </div>
         </div>
@@ -1114,6 +1141,8 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
       color={color}
       onRemove={onRemove}
       onToggleSticky={onToggleSticky}
+      isSlept={isSlept}
+      onToggleSlept={onToggleSlept}
       onSaved={onSaved}
       selectedCell={selectedCell}
       tableauCombos={tableauCombos}
@@ -1126,7 +1155,7 @@ function DetailPanel({ placement, room, isSticky, types, canEdit, onRemove, onTo
 // Editable detail panel — all room properties editable inline, auto-saved
 // ─────────────────────────────────────────────────────────────────────────────
 
-function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove, onToggleSticky, onSaved, selectedCell, tableauCombos, onSaveTableaux }) {
+function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove, onToggleSticky, isSlept, onToggleSlept, onSaved, selectedCell, tableauCombos, onSaveTableaux }) {
   const [form, setForm] = useState(() => initForm(room))
   const [savedFlash, setSavedFlash] = useState(false)
   const saveTimer = useRef(null)
@@ -1172,6 +1201,7 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
         <Badge color={color}>{form.type || placement.room_type}</Badge>
         {isSticky && <Badge color="var(--bp-gold)">📌 Épinglée</Badge>}
+        {isSlept && <Badge color="var(--bp-accent)">💤 Dodo</Badge>}
         <span style={{
           marginLeft: 'auto', fontSize: 10,
           color: savedFlash ? '#5BAD6E' : 'var(--bp-text-muted)',
@@ -1233,6 +1263,16 @@ function EditableDetailPanel({ placement, room, isSticky, types, color, onRemove
           style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--bp-gold)' }}
         />
         ⚡ Conduite énergie
+      </label>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--bp-text)' }}>
+        <input
+          type="checkbox"
+          checked={!!isSlept}
+          onChange={() => onToggleSlept?.()}
+          style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--bp-accent)' }}
+        />
+        💤 J'ai dormi ici ce jour
       </label>
 
       <div>

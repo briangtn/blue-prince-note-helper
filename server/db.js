@@ -257,6 +257,15 @@ if (!linkCols.includes('sort_order')) {
   db.exec('ALTER TABLE links ADD COLUMN sort_order INTEGER DEFAULT 0')
 }
 
+// Migration : cellule où l'on a dormi ce jour (une seule par jour, position sur la grille).
+const dayCols = db.prepare('PRAGMA table_info(days)').all().map((c) => c.name)
+if (!dayCols.includes('slept_row')) {
+  db.exec('ALTER TABLE days ADD COLUMN slept_row INTEGER')
+}
+if (!dayCols.includes('slept_col')) {
+  db.exec('ALTER TABLE days ADD COLUMN slept_col INTEGER')
+}
+
 // Seed predefined room types (schéma wiki : 7 catégories = couleur de bordure du jeu)
 const defaultTypes = [
   ['Blueprints', '#4B7FBF'],
