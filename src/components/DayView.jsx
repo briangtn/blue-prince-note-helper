@@ -253,6 +253,21 @@ export default function DayView() {
   const placed = occupied.size
   const free = totalCells - placed
 
+  // ── Pièces d'échecs présentes ce jour ──────────────────────────────────────
+  // On parcourt tous les placements (jour + sticky) et on note quelles pièces
+  // d'échecs sont représentées. Alerte quand les 6 sont présentes ; sinon on
+  // liste celles qui manquent.
+  const CHESS_KEYS = ['king', 'queen', 'rook', 'bishop', 'knight', 'pawn']
+  const presentChess = new Set()
+  for (const p of [...placements, ...sticky]) {
+    const sym = chessSymbol(p.chess_pieces)
+    if (!sym) continue
+    const key = CHESS_KEYS.find((k) => CHESS_SYMBOLS[k] === sym)
+    if (key) presentChess.add(key)
+  }
+  const missingChess = CHESS_KEYS.filter((k) => !presentChess.has(k))
+  const allChessPresent = missingChess.length === 0
+
   // ─────────────────────────────────────────────────────────────────────────
   // No day selected
   // ─────────────────────────────────────────────────────────────────────────
@@ -596,6 +611,47 @@ export default function DayView() {
               {free} libre{free !== 1 ? 's' : ''}
             </span>
           </div>
+        </div>
+
+        {/* Alerte pièces d'échecs */}
+        <div style={{
+          display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+          marginBottom: 16, padding: '10px 14px', borderRadius: 10,
+          fontFamily: 'var(--font-body)', fontSize: 13,
+          background: allChessPresent ? 'rgba(124, 179, 66, 0.14)' : 'var(--bp-panel)',
+          border: `1px solid ${allChessPresent ? 'rgba(124, 179, 66, 0.6)' : 'var(--bp-border)'}`,
+          color: allChessPresent ? '#9ccc65' : 'var(--bp-text-dim)',
+        }}>
+          {allChessPresent ? (
+            <>
+              <span style={{ fontSize: 16 }}>✓</span>
+              <span style={{ fontWeight: 600 }}>Toutes les pièces d'échecs sont présentes</span>
+              <span style={{ fontSize: 16, letterSpacing: 2 }}>
+                {CHESS_KEYS.map((k) => CHESS_SYMBOLS[k]).join('')}
+              </span>
+            </>
+          ) : (
+            <>
+              <span style={{ fontWeight: 600, color: 'var(--bp-text)' }}>
+                Pièces d'échecs manquantes&nbsp;({missingChess.length})&nbsp;:
+              </span>
+              {missingChess.map((k) => (
+                <span
+                  key={k}
+                  title={chessLabel(k)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '2px 8px', borderRadius: 6,
+                    background: 'var(--bp-surface)', border: '1px solid var(--bp-border)',
+                    color: 'var(--bp-text)',
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>{CHESS_SYMBOLS[k]}</span>
+                  {chessLabel(k)}
+                </span>
+              ))}
+            </>
+          )}
         </div>
 
         {/* Grid */}
