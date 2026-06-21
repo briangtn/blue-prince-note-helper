@@ -257,6 +257,13 @@ if (!linkCols.includes('sort_order')) {
   db.exec('ALTER TABLE links ADD COLUMN sort_order INTEGER DEFAULT 0')
 }
 
+// Migration : nature d'une entrée du dictionnaire (mot connu / préfixe / suffixe).
+const dictCols = db.prepare('PRAGMA table_info(dictionary)').all().map((c) => c.name)
+if (!dictCols.includes('kind')) {
+  db.exec("ALTER TABLE dictionary ADD COLUMN kind TEXT DEFAULT 'word'")
+  db.exec("UPDATE dictionary SET kind = 'word' WHERE kind IS NULL")
+}
+
 // Migration : cellule où l'on a dormi ce jour (une seule par jour, position sur la grille).
 const dayCols = db.prepare('PRAGMA table_info(days)').all().map((c) => c.name)
 if (!dayCols.includes('slept_row')) {
