@@ -116,7 +116,7 @@ export default function NotesView() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px' }}>
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: isMobile ? '16px 14px' : '24px 28px', height: '100%', overflow: 'auto' }}>
       <SectionHead title="Notes" />
 
       {/* Add form */}
