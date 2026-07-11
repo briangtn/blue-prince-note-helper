@@ -12,6 +12,7 @@ import tableaux from './routes/tableaux.js'
 import soil from './routes/soil.js'
 import people from './routes/people.js'
 import notes from './routes/notes.js'
+import todos from './routes/todos.js'
 import dictionary from './routes/dictionary.js'
 import entities from './routes/entities.js'
 import events from './routes/events.js'
@@ -83,6 +84,7 @@ app.use('/api/tableaux', tableaux)
 app.use('/api/soil', soil)
 app.use('/api/people', people)
 app.use('/api/notes', notes)
+app.use('/api/todos', todos)
 app.use('/api/dictionary', dictionary)
 app.use('/api/entities', entities)
 app.use('/api/events', events)

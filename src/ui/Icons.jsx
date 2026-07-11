@@ -21,4 +21,6 @@ export const Icons = {
   craft: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><path d="M12.5 3.5a3 3 0 00-4 4l-5 5L5 14l5-5a3 3 0 004-4l-2 2-1.5-1.5 2-2z"/><path d="M11 11l4.5 4.5L17 14l-4.5-4.5"/></svg>,
   photo: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" {...p}><rect x="2" y="4" width="16" height="13" rx="2"/><circle cx="7" cy="9" r="1.5"/><path d="M2 14l4-3 3 2 4-4 5 5"/></svg>,
   menu: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" {...p}><path d="M3 5h14M3 10h14M3 15h14"/></svg>,
+  check: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M8 5h9M8 10h9M8 15h9"/><path d="M2.5 5l1.3 1.3L6 4M2.5 10l1.3 1.3L6 9M2.5 15l1.3 1.3L6 14"/></svg>,
+  tick: (p) => <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 10.5l4 4 8-9"/></svg>,
 }

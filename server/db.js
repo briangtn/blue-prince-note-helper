@@ -126,6 +126,15 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
+  -- Liste de tâches (todo list) : intitulé + done (0/1).
+  CREATE TABLE IF NOT EXISTS todos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL,
+    done INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   -- Combinaisons de tableaux par POSITION de la grille (pas par pièce).
   -- combos = JSON [["Stage","Sage"], …] ; la lettre trouvée est dérivée côté client.
   CREATE TABLE IF NOT EXISTS position_tableaux (

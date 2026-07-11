@@ -71,6 +71,11 @@ export const api = {
   createNote: (body) => req('/notes', { method: 'POST', body }),
   updateNote: (id, body) => req(`/notes/${id}`, { method: 'PUT', body }),
   deleteNote: (id) => req(`/notes/${id}`, { method: 'DELETE' }),
+  // todos (liste de tâches)
+  listTodos: () => req('/todos'),
+  createTodo: (body) => req('/todos', { method: 'POST', body }),
+  updateTodo: (id, body) => req(`/todos/${id}`, { method: 'PUT', body }),
+  deleteTodo: (id) => req(`/todos/${id}`, { method: 'DELETE' }),
   // dictionary (glossaire : terme + définition)
   listDictionary: () => req('/dictionary'),
   createDictionaryEntry: (body) => req('/dictionary', { method: 'POST', body }),

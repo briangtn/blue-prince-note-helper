@@ -12,6 +12,7 @@ import CodesView from './components/CodesView.jsx'
 import ItemsView from './components/ItemsView.jsx'
 import CraftsView from './components/CraftsView.jsx'
 import NotesView from './components/NotesView.jsx'
+import TodosView from './components/TodosView.jsx'
 import DictionaryView from './components/DictionaryView.jsx'
 import EntitiesView from './components/EntitiesView.jsx'
 import PhotosView from './components/PhotosView.jsx'
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { id: 'items',  path: '/items',  label: 'Items',      icon: 'box' },
   { id: 'crafts', path: '/crafts', label: 'Crafts',     icon: 'craft' },
   { id: 'notes',  path: '/notes',  label: 'Notes',      icon: 'note' },
+  { id: 'todos',  path: '/todos',  label: 'Tâches',     icon: 'check' },
   { id: 'dictionary', path: '/dictionary', label: 'Dictionnaire', icon: 'book' },
   { id: 'entities', path: '/entities', label: 'Entités',  icon: 'grid' },
   { id: 'photos', path: '/photos', label: 'Photothèque', icon: 'photo' },
@@ -418,6 +420,7 @@ function AppContent() {
           <Route path="/items" element={<ItemsView />} />
           <Route path="/crafts" element={<CraftsView />} />
           <Route path="/notes" element={<NotesView />} />
+          <Route path="/todos" element={<TodosView />} />
           <Route path="/dictionary" element={<DictionaryView />} />
           <Route path="/entities" element={<EntitiesView />} />
           <Route path="/photos" element={<PhotosView />} />
